@@ -13,7 +13,7 @@ class Rocket:
     
     def __init__(self, Isp, mass, F_thrust, c_D, A):
         self.s = 0.                                                 # current downtrack; [m]
-        self.r = c.r_earth                                            # current radius from Earth's center; [m]
+        self.r = c.r_earth                                          # current radius from Earth's center; [m]
         self.v = 0.0                                                # current velocity norm; [m/s]
         self.gamma = np.deg2rad(90.0)                               # current flight path angle; [rad]
         self.alpha = 0.0                                            # current angle of attack; [rad]
