@@ -1,0 +1,8 @@
+*.pyc
+.DS_Store
+.env
+.venv
+__pycache__
+venv
+idea
+grav_turn_venv
