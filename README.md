@@ -3,12 +3,9 @@
 ## Structure of the Project
 - **src**: contains the code for the simulation:
   - **components**: contains two files to simulate the environment and the rocket
-  - **params**: contains a file for defining constants for the whole project and two files for specifiying parameters for the simulation (one for single run, one for multi run / optimization)
+  - **params**: contains one file for for defining constants for the whole project and two files for specifiying parameters for the simulation and for the rocket properties respectively
   - **plotting**: contains a file to plot the data for given launch data
-  - **simulations**: contains a file that performs the simulation of one launch for given parameters
-  - _main\_single\_no\_check.py_: executes a single run without checking final conditions and cretates plots for parameters specified in params.params_single_run.py
-  - _main\_single\_with\_check.py_: NOT IMPLEMENTED YET
-  - _main\_multi.py_: NOT IMPLEMENTED YET
+  - _single\_run.py_: executes a single run until both stages are burnt - no final conditions are checked yet
 - **references**: contains references listed below
 
 ## Unit Convention

@@ -6,9 +6,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import params.constants as c
+import params.params_simulation as par_sim
+import components.rocket as r
 
 
-def single_run(time_steps, data, angle_attack_values, angle_attack_times):
+def single_run(time_steps, data):
     """
     Inputs:
         - time_steps: array of time steps (for the data array); [s]
@@ -42,7 +44,21 @@ def single_run(time_steps, data, angle_attack_values, angle_attack_times):
         v = data[2][i]
         rho = c.rho0 * np.exp(-alt / c.H)
         q.append(0.5 * rho * v**2)
-
+    
+    # Recreate angle of attack values
+    # Initialize empty list with length of t
+    angle_of_attacks = [0.0] * len(time_steps)
+    for i, t in enumerate(time_steps):
+        if t < r.time_kick_start:
+            angle_of_attacks[i] = 0.0
+        elif t > (r.time_kick_start + par_sim.duration_initial_kick):
+            angle_of_attacks[i] = 0.0
+        elif t > (r.time_kick_start + (par_sim.duration_initial_kick / 2.)):
+            angle_rate = (t - (r.time_kick_start + r.time_raise)) / (r.time_raise)
+            angle_of_attacks[i] = par_sim.max_angle_of_attack * (1 - angle_rate)
+        else:
+            angle_rate = (t - r.time_kick_start) / (r.time_raise)
+            angle_of_attacks[i] = par_sim.max_angle_of_attack * angle_rate
 
     # -------------- Plotting --------------
     fig1, axs1 = plt.subplots(2, 4, figsize=(15, 15))
@@ -97,7 +113,7 @@ def single_run(time_steps, data, angle_attack_values, angle_attack_times):
     axs1[1, 2].grid()
 
     # Angle of Attack plot
-    axs1[1, 3].plot(angle_attack_times, angle_attack_values)
+    axs1[1, 3].plot(time_steps, np.rad2deg(angle_of_attacks))
     axs1[1, 3].set_xlabel('time [s]')
     axs1[1, 3].set_ylabel('angle of attack [deg]')
     axs1[1, 3].set_title('Angle of Attack over Time')
