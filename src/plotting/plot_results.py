@@ -90,7 +90,7 @@ def single_run(time_steps, data):
     axs1[0, 3].grid()
 
     # Flight path angle plot
-    axs1[1, 0].plot(time_steps, data[3])
+    axs1[1, 0].plot(time_steps, np.rad2deg(data[3]))
     axs1[1, 0].set_xlabel('time [s]')
     axs1[1, 0].set_ylabel('gamma [rad]')
     axs1[1, 0].set_title('Flight Path Angle over Time')

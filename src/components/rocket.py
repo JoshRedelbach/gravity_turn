@@ -39,7 +39,10 @@ def interrupt_radius_check(t, y):
     if r > (par_sim.alt_desired + c.r_earth):
         print("Interrupt Radius Check happened at time ", t)
         return 0
-    else: return 1
+    # elif r < c.r_earth:
+    #     print("Interrupt Ground Collision happened at time ", t)
+    #     return 0
+    return 1
 
 
 def interrupt_stage_separation(t, y):
@@ -56,7 +59,7 @@ def interrupt_stage_separation(t, y):
         if t >= (time_main_engine_cutoff + par_roc.delta_time_stage_separation):
             print("Interrupt Stage Separation happened at time ", t)
             return 0
-    else: return 1
+    return 1
 
 
 def interrupt_orbit_reached(t, y):
@@ -77,9 +80,9 @@ def interrupt_orbit_reached(t, y):
     epsilon_gamma = 10          # margin for the flight path angle check
 
     if abs(r_desired - r) < epsilon_r and abs(v_desired - v) < epsilon_v and abs(gamma) < epsilon_gamma:
-        print("Interrupt Stage Separation happened at time ", t)
+        print("Interrupt Desired Orbit reached at time ", t)
         return 0
-    else: return 1
+    return 1
 
 
 def interrupt_stage_2_burnt(t, y):
@@ -95,6 +98,7 @@ def interrupt_stage_2_burnt(t, y):
         print("Interrupt Stage 2 Burnt happened at time ", t)
         return 0
     return 1
+
     
     
 #===================================================
@@ -306,5 +310,6 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag):
     
     for interrupt in interrupt_list:
         interrupt.terminal = True
+        interrupt.direction = 0
     
     return solve_ivp(rocket_dynamics, y0=state_init, t_span=t_span, t_eval=t_eval, max_step=1, events=interrupt_list)
