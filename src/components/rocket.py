@@ -40,6 +40,8 @@ def event_radius_check(t, y):
     if r > (par_sim.alt_desired + c.r_earth):
         return 0
     else: return 1
+    
+# Alex's comment
 
 
 def event_stage_separation(t, y):
