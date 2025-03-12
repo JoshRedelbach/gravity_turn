@@ -15,4 +15,4 @@ Assume instantaneous change of the rocket mass by subtracting the mass of struct
 1. Second engine:
    - or one of the following events occured:
      - successfully reached desired orbit (check of radius, velocity and flight path angle)
-     - 
+     - no fuel left

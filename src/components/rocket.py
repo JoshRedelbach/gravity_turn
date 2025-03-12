@@ -17,7 +17,60 @@ from scipy.integrate import solve_ivp
 time_kick_start = None                          # time when the initial kick starts
 kick_performed = False                          # flag to check if the initial kick has been performed
 time_raise = par_sim.duration_initial_kick / 2. # time to raise the angle of attack to the maximum value; [s]
-separation_performed = False                    # flag to check if the stage separation has been performed
+stage_separation = False                        # flag to check if stage separation can be performed (-> interrupt simulation 1)
+
+
+
+#===================================================
+# Event functions to interrupt
+#===================================================
+
+def event_radius_check(t, y):
+    """
+    Returns zero, if the current radius exceeds the radius of the desired.
+    
+    Input:
+        - t: current time since launch; [s]
+        - y: current state vector
+    """
+    r = y[1]
+    if r > (par_sim.alt_desired + c.r_earth):
+        return 0
+    else: return 1
+
+
+def event_stage_separation(t, y):
+    """
+    Returns zero, if the stage separation was performed successfully (everything that need to be done until the m_structure_1 needs to be separated.)
+    
+    Input:
+        - t: current time since launch; [s]
+        - y: current state vector
+    """
+    if stage_separation: return 0
+    else: return 1
+
+
+def event_orbit_reached(t, y):
+    """
+    Returns zero, if the desired orbit is reached successfully meaning that current velocity norm, radius and flight path angle fit the requirements (within a certain margin).
+    
+    Input:
+        - t: current time since launch; [s]
+        - y: current state vector
+    """
+    _, r, v, gamma, _ = y
+    
+    r_desired = c.r_earth + par_sim.alt_desired
+    v_desired = np.sqrt(c.mu_earth / r_desired)
+
+    epsilon_r = 10              # margin for the orbit radius check
+    epsilon_v = 10              # margin for the orbit velocity check
+    epsilon_gamma = 10          # margin for the flight path angle check
+
+    if abs(r_desired - r) < epsilon_r and abs(v_desired - v) < epsilon_v and abs(gamma) < epsilon_gamma:
+        return 0
+    else: return 1
 
 
 
