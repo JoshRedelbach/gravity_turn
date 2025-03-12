@@ -37,6 +37,7 @@ def interrupt_radius_check(t, y):
     """
     r = y[1]
     if r > (par_sim.alt_desired + c.r_earth):
+        print("Interrupt Radius Check happened at time ", t)
         return 0
     else: return 1
 
@@ -49,10 +50,12 @@ def interrupt_stage_separation(t, y):
         - t: current time since launch; [s]
         - y: current state vector
     """
-    global time_main_engine_cutoff
+    global time_main_engine_cutoff, main_engine_cutoff
 
-    if t >= (time_main_engine_cutoff + par_roc.delta_time_stage_separation):
-        return 0
+    if main_engine_cutoff:
+        if t >= (time_main_engine_cutoff + par_roc.delta_time_stage_separation):
+            print("Interrupt Stage Separation happened at time ", t)
+            return 0
     else: return 1
 
 
@@ -74,8 +77,24 @@ def interrupt_orbit_reached(t, y):
     epsilon_gamma = 10          # margin for the flight path angle check
 
     if abs(r_desired - r) < epsilon_r and abs(v_desired - v) < epsilon_v and abs(gamma) < epsilon_gamma:
+        print("Interrupt Stage Separation happened at time ", t)
         return 0
     else: return 1
+
+
+def interrupt_stage_2_burnt(t, y):
+    """
+    Returns zero, if the second stage is fully burnt.
+    
+    Input:
+        - t: current time since launch; [s]
+        - y: current state vector
+    """
+    m = y[4]
+    if m <= (par_roc.m_payload + par_roc.m_structure_2):
+        print("Interrupt Stage 2 Burnt happened at time ", t)
+        return 0
+    return 1
     
     
 #===================================================
@@ -111,30 +130,12 @@ def event_second_engine_ignition(t):
         - t: current time since launch; [s]
     """
     
-    global delta_time_second_engine_ignition, time_main_engine_cutoff, second_engine_ignition
+    global time_main_engine_cutoff, second_engine_ignition
     
-    if t >= (delta_time_second_engine_ignition + time_main_engine_cutoff):
+    if t >= (par_roc.delta_time_second_engine_ignition + time_main_engine_cutoff):
         second_engine_ignition = True
         
     return
-    
-    
-    
-
-
-def interrupt_stage_2_burnt(t, y):
-    """
-    Returns zero, if the second stage is fully burnt.
-    
-    Input:
-        - t: current time since launch; [s]
-        - y: current state vector
-    """
-    m = y[4]
-    if m <= (par_roc.m_payload + par_roc.m_structure_2):
-        print("Propellant of stage 2 is fully burnt!")
-        return 0
-    return 1
 
 
 
@@ -223,7 +224,7 @@ def rocket_dynamics(t, state):
     Output:
         - derivatives of the state vector
     """
-    global time_kick_start, kick_performed
+    global time_kick_start, kick_performed, main_engine_cutoff
 
     # Get state components
     s, r, v, gamma, m = state
@@ -233,7 +234,8 @@ def rocket_dynamics(t, state):
 
     # Check main engine state and second engine state
     event_main_engine_cutoff(t, state)
-    event_second_engine_ignition(t)
+    if main_engine_cutoff:
+        event_second_engine_ignition(t)
     
     # --- Get current thrust, Isp ---
     F_T, Isp = thrust_Isp()
@@ -276,18 +278,13 @@ def rocket_dynamics(t, state):
         dgammadt = (1./v) * ( (F_T / m) * s_alpha + F_L / m  - (a_grav - (v**2 / r)) * c_gamma )
     
     # Derivative of mass
-    if t > par_roc.t_burn_1 and (m > (par_roc.m_structure_2 + par_roc.m_prop_2)):
-        # If first stage is burnt out, and the mass still includes the mass of the first stage structure, subtract it ONCE!
-        dmdt = - (m - par_roc.m_structure_1) # * ( (par_roc.t_burn_1 + par_roc.t_burn_2) / par_sim.number_of_points )
-        print("\nFirst stage burnt out at t = ", t)
-        print("\nStage separation performed. Current mass: ", m)
-    else: dmdt = - F_T / (Isp * c.g0)
+    dmdt = - F_T / (Isp * c.g0)
 
     return [dsdt, drdt, dvdt, dgammadt, dmdt]
 
 
 
-def simulate_trajectory(time_stamp, state_init, stage_1_flag):
+def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag):
     """
     Simulates the trajectory of the rocket until a given time stamps or until a certain interrupt function is called.
 
@@ -299,8 +296,8 @@ def simulate_trajectory(time_stamp, state_init, stage_1_flag):
         - solution array of the simulation
     """
 
-    t_span = (0, time_stamp)
-    t_eval = np.arange(0.0, time_stamp + par_sim.time_step, par_sim.time_step)
+    t_span = (init_time, init_time + time_stamp)
+    t_eval = np.arange(init_time, init_time + time_stamp + par_sim.time_step, par_sim.time_step)
 
     if stage_1_flag:
         interrupt_list = [interrupt_radius_check, interrupt_stage_separation]
