@@ -18,12 +18,44 @@ time_kick_start = None                          # time when the initial kick sta
 kick_performed = False                          # flag to check if the initial kick has been performed
 time_raise = par_sim.duration_initial_kick / 2. # time to raise the angle of attack to the maximum value; [s]
 separation_performed = False                    # flag to check if the stage separation has been performed
+main_engine_cutoff = False                      # flag to check if the first stage engine is cutoff
+second_engine_ignition = False                  # flag to check if the second stage engine is ignited 
 
 
 
 #===================================================
 # Define functions
 #===================================================
+
+def thrust_Isp():
+    """
+    Returns the current thrust and Isp.
+    
+    NOTE: It doesn't account for both engines ignited.
+    
+    Output:
+        - F_T: current thrust; [N]
+        - Isp: current specific impulse; [s]
+    """
+    
+    global main_engine_cutoff
+    
+    if main_engine_cutoff == False:
+        F_T = par_roc.F_thrust_1
+        Isp = par_roc.Isp_1
+    elif main_engine_cutoff == True and second_engine_ignition == False:
+        F_T = 0
+        Isp = par_roc.Isp_1
+    elif main_engine_cutoff == True and second_engine_ignition == True:
+        F_T = par_roc.F_thrust_2
+        Isp = par_roc.Isp_2
+    else:
+        print("Warning: Both first stage and second stage engines are running at the same time.")
+        
+    return F_T, Isp
+        
+    
+    
 
 def pitch_programm_linear(t):
     """
@@ -85,13 +117,8 @@ def rocket_dynamics(t, state):
     # Compute altitude above Earth's surface
     alt = r - c.r_earth                # altitude of the rocket; [m]
 
-    # --- Get current thrust, Isp (and perform stage separation if necessary) ---
-    if t < par_roc.t_burn_1:
-        F_T = par_roc.F_thrust_1
-        Isp = par_roc.Isp_1
-    else:
-        F_T = par_roc.F_thrust_2
-        Isp = par_roc.Isp_2
+    # --- Get current thrust, Isp ---
+    F_T, Isp = thrust_Isp()
 
     # --- Get current angle of attack ---
     if alt > par_sim.alt_initial_kick and (not kick_performed):
