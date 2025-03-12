@@ -17,9 +17,6 @@ Python packages required to run the simulation:
 - matplotlib
 - scipy
 
-## Notes:
-- Instead of determining the altitude where the initial kick takes place, currently a time stamp is defined at which it will be performed. By that the integration can be performed to that time stamp. Otherwise the integration can only be performed for small time steps and the current altitude must be checked with the specified kick altitude.
-
 ## To-Do's/Questions:
 - final conditions check
 - multi_run / optimization
