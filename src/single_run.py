@@ -1,6 +1,6 @@
 """ ===============================================
             SINGLE RUN SIMULATION 
-    !! NO CHECK OF FINAL CONDITIONS !!
+    !! NO CHECK OF FINAL CONDITIONS YET !!
 =============================================== """
 
 import params.params_rocket as par_roc

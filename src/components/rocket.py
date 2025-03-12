@@ -155,6 +155,6 @@ def simulate_trajectory(time_stamp, state_init):
     """
 
     t_span = (0, time_stamp)
-    t_eval = np.linspace(0, time_stamp, par_sim.number_of_points)
+    t_eval = np.arange(0.0, time_stamp + par_sim.time_step, par_sim.time_step)
     
     return solve_ivp(rocket_dynamics, y0=state_init, t_span=t_span, t_eval=t_eval, max_step=1)
