@@ -34,8 +34,8 @@ m_prop_2 = 30e3         # mass propellant; [kg]
 m_payload = 0           # mass of payload; [kg]
 
 # Define time steps for events after main engine cutoff
-delta_time_stage_separation = 10             # time when stage separation should take place after main engine cutoff
-delta_time_second_engine_ignition = 10       # time when second stage should be ignited after main engine cutoff
+delta_time_stage_separation = 3             # time when stage separation should take place after main engine cutoff
+delta_time_second_engine_ignition = 11      # time when second stage should be ignited after main engine cutoff
 
 # NOTE: DO NOT CHANGE SOMETHING HERE
 # Calculate the burn times of the stages
