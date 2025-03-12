@@ -17,18 +17,17 @@ from scipy.integrate import solve_ivp
 time_kick_start = None                          # time when the initial kick starts
 kick_performed = False                          # flag to check if the initial kick has been performed
 time_raise = par_sim.duration_initial_kick / 2. # time to raise the angle of attack to the maximum value; [s]
-stage_separation = False                        # flag to check if stage separation can be performed (-> interrupt simulation 1)
-separation_performed = False                    # flag to check if the stage separation has been performed
 main_engine_cutoff = False                      # flag to check if the first stage engine is cutoff
-second_engine_ignition = False                  # flag to check if the second stage engine is ignited 
+second_engine_ignition = False                  # flag to check if the second stage engine is ignited
+stage_2_burnt = False                           # flag to check if the second stage is burnt
 time_main_engine_cutoff = None                  # time when the main engine cuts off
 
 
 #===================================================
-# Event functions to interrupt
+# Interrupt functions for simulation
 #===================================================
 
-def event_radius_check(t, y):
+def interrupt_radius_check(t, y):
     """
     Returns zero, if the current radius exceeds the radius of the desired.
     
@@ -42,7 +41,7 @@ def event_radius_check(t, y):
     else: return 1
 
 
-def event_stage_separation(t, y):
+def interrupt_stage_separation(t, y):
     """
     Returns zero, if the stage separation was performed successfully (everything that need to be done until the m_structure_1 needs to be separated.)
     
@@ -50,11 +49,14 @@ def event_stage_separation(t, y):
         - t: current time since launch; [s]
         - y: current state vector
     """
-    if stage_separation: return 0
+    global time_main_engine_cutoff
+
+    if t >= (time_main_engine_cutoff + par_roc.delta_time_stage_separation):
+        return 0
     else: return 1
 
 
-def event_orbit_reached(t, y):
+def interrupt_orbit_reached(t, y):
     """
     Returns zero, if the desired orbit is reached successfully meaning that current velocity norm, radius and flight path angle fit the requirements (within a certain margin).
     
@@ -118,6 +120,21 @@ def event_second_engine_ignition(t):
     
     
     
+
+
+def interrupt_stage_2_burnt(t, y):
+    """
+    Returns zero, if the second stage is fully burnt.
+    
+    Input:
+        - t: current time since launch; [s]
+        - y: current state vector
+    """
+    m = y[4]
+    if m <= (par_roc.m_payload + par_roc.m_structure_2):
+        print("Propellant of stage 2 is fully burnt!")
+        return 0
+    return 1
 
 
 
@@ -270,9 +287,9 @@ def rocket_dynamics(t, state):
 
 
 
-def simulate_trajectory(time_stamp, state_init):
+def simulate_trajectory(time_stamp, state_init, stage_1_flag):
     """
-    Simulates the trajectory of the rocket until a given time stamps.
+    Simulates the trajectory of the rocket until a given time stamps or until a certain interrupt function is called.
 
     Input:
         - time_stamp: time stamp until the simulation should be performed; [s]
@@ -284,5 +301,13 @@ def simulate_trajectory(time_stamp, state_init):
 
     t_span = (0, time_stamp)
     t_eval = np.arange(0.0, time_stamp + par_sim.time_step, par_sim.time_step)
+
+    if stage_1_flag:
+        interrupt_list = [interrupt_radius_check, interrupt_stage_separation]
+    else:
+        interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_orbit_reached]
     
-    return solve_ivp(rocket_dynamics, y0=state_init, t_span=t_span, t_eval=t_eval, max_step=1)
+    for interrupt in interrupt_list:
+        interrupt.terminal = True
+    
+    return solve_ivp(rocket_dynamics, y0=state_init, t_span=t_span, t_eval=t_eval, max_step=1, events=interrupt_list)

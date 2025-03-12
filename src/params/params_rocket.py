@@ -30,6 +30,13 @@ F_thrust_2 = 900e3      # thrust of engine; [N]
 m_structure_2 = 3333    # mass structure; [kg]
 m_prop_2 = 30e3         # mass propellant; [kg]
 
+# Payload
+m_payload = 0           # mass of payload; [kg]
+
+# Define time steps for events after main engine cutoff
+delta_time_stage_separation = 10             # time when stage separation should take place after main engine cutoff
+delta_time_second_engine_ignition = 10       # time when second stage should be ignited after main engine cutoff
+
 # NOTE: DO NOT CHANGE SOMETHING HERE
 # Calculate the burn times of the stages
 t_burn_1 = m_prop_1 / (F_thrust_1 / (Isp_1 * c.g0))
