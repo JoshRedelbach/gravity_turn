@@ -35,13 +35,11 @@ def interrupt_radius_check(t, y):
         - t: current time since launch; [s]
         - y: current state vector
     """
+    margin = 50e3
     r = y[1]
-    if r > (par_sim.alt_desired + c.r_earth):
+    if r > (par_sim.alt_desired + c.r_earth + margin):
         print("Interrupt Radius Check happened at time ", t)
         return 0
-    # elif r < c.r_earth:
-    #     print("Interrupt Ground Collision happened at time ", t)
-    #     return 0
     return 1
 
 
@@ -75,9 +73,9 @@ def interrupt_orbit_reached(t, y):
     r_desired = c.r_earth + par_sim.alt_desired
     v_desired = np.sqrt(c.mu_earth / r_desired)
 
-    epsilon_r = 10              # margin for the orbit radius check
-    epsilon_v = 10              # margin for the orbit velocity check
-    epsilon_gamma = 10          # margin for the flight path angle check
+    epsilon_r = 10e3                        # margin for the orbit radius check
+    epsilon_v = 200                          # margin for the orbit velocity check
+    epsilon_gamma = np.deg2rad(2.)          # margin for the flight path angle check
 
     if abs(r_desired - r) < epsilon_r and abs(v_desired - v) < epsilon_v and abs(gamma) < epsilon_gamma:
         print("Interrupt Desired Orbit reached at time ", t)
@@ -96,6 +94,21 @@ def interrupt_stage_2_burnt(t, y):
     m = y[4]
     if m <= (par_roc.m_payload + par_roc.m_structure_2):
         print("Interrupt Stage 2 Burnt happened at time ", t)
+        return 0
+    return 1
+
+
+def interrupt_ground_collision(t, y):
+    """
+    Returns zero, if the current radius is below radius of earth
+    
+    Input:
+        - t: current time since launch; [s]
+        - y: current state vector
+    """
+    r = y[1]
+    if r < c.r_earth:
+        print("Interrupt Earth Collision happened at time ", t)
         return 0
     return 1
 
@@ -300,13 +313,13 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag):
         - solution array of the simulation
     """
 
-    t_span = (init_time, init_time + time_stamp)
+    t_span = (init_time, init_time + time_stamp + 1)
     t_eval = np.arange(init_time, init_time + time_stamp + par_sim.time_step, par_sim.time_step)
 
     if stage_1_flag:
-        interrupt_list = [interrupt_radius_check, interrupt_stage_separation]
+        interrupt_list = [interrupt_radius_check, interrupt_stage_separation, interrupt_ground_collision]
     else:
-        interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_orbit_reached]
+        interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_orbit_reached, interrupt_ground_collision]
     
     for interrupt in interrupt_list:
         interrupt.terminal = True

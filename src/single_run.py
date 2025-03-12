@@ -3,6 +3,7 @@
 =============================================== """
 
 import params.params_rocket as par_roc
+import params.params_simulation as par_sim
 import components.rocket as rocket
 import plotting.plot_results as plot_results
 import params.constants as c
@@ -10,6 +11,13 @@ import numpy as np
 
 
 def run():
+
+    # ---- Debugging ---- 
+    # Print desired orbit
+    r_desired = c.r_earth + par_sim.alt_desired
+    v_desired = np.sqrt(c.mu_earth / r_desired)
+    print(r_desired)
+    print(v_desired)
 
     #===================================================
     # Simulation until stage separation
@@ -20,7 +28,7 @@ def run():
     initial_state_1 = [0., c.r_earth, 0., np.deg2rad(90.), initial_mass]
 
     # Define time of simulation 1
-    time_1 = 500   #<------TODO
+    time_1 = 500.   #<------TODO
 
     # Call simulation for stage 1
     sol_1 = rocket.simulate_trajectory(0, time_1, initial_state_1, True)
@@ -38,7 +46,7 @@ def run():
     
     # Define time of simulation 2
     init_time_2 = sol_1.t[-1]
-    time_2 = 500   #<------TODO
+    time_2 = 500.   #<------TODO
     
     # Call simulation for stage 1
     print("Second Simulation started!")
