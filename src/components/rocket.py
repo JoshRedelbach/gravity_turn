@@ -21,7 +21,7 @@ stage_separation = False                        # flag to check if stage separat
 separation_performed = False                    # flag to check if the stage separation has been performed
 main_engine_cutoff = False                      # flag to check if the first stage engine is cutoff
 second_engine_ignition = False                  # flag to check if the second stage engine is ignited 
-
+time_main_engine_cutoff = None                  # time when the main engine cuts off
 
 
 #===================================================
@@ -40,8 +40,6 @@ def event_radius_check(t, y):
     if r > (par_sim.alt_desired + c.r_earth):
         return 0
     else: return 1
-    
-# Alex's comment
 
 
 def event_stage_separation(t, y):
@@ -76,6 +74,50 @@ def event_orbit_reached(t, y):
     if abs(r_desired - r) < epsilon_r and abs(v_desired - v) < epsilon_v and abs(gamma) < epsilon_gamma:
         return 0
     else: return 1
+    
+    
+#===================================================
+# Event functions to interrupt
+#===================================================
+
+def event_main_engine_cutoff(t, y):
+    """
+    Checks if there is still propellant in the first stage and triggers engine cutoff event when there isn't.
+    
+    Input:
+        - y: current state vector
+    """
+    
+    global main_engine_cutoff, time_main_engine_cutoff
+    
+    if main_engine_cutoff == True:
+        return
+    
+    first_stage_leftover_propellant = y[4] - (par_roc.m_structure_1 + par_roc.m_structure_2 + par_roc.m_prop_2 + par_roc.m_payload)
+    
+    if first_stage_leftover_propellant <= 0 and main_engine_cutoff == False:
+        main_engine_cutoff = True
+        time_main_engine_cutoff = t
+
+    return
+
+def event_second_engine_ignition(t):
+    """
+    Triggers second stage engine ignition.
+    
+    Input:
+        - t: current time since launch; [s]
+    """
+    
+    global delta_time_second_engine_ignition, time_main_engine_cutoff, second_engine_ignition
+    
+    if t >= (delta_time_second_engine_ignition + time_main_engine_cutoff):
+        second_engine_ignition = True
+        
+    return
+    
+    
+    
 
 
 
@@ -94,7 +136,7 @@ def thrust_Isp():
         - Isp: current specific impulse; [s]
     """
     
-    global main_engine_cutoff
+    global main_engine_cutoff, second_engine_ignition
     
     if main_engine_cutoff == False:
         F_T = par_roc.F_thrust_1
@@ -109,10 +151,8 @@ def thrust_Isp():
         print("Warning: Both first stage and second stage engines are running at the same time.")
         
     return F_T, Isp
-        
-    
-    
-    
+
+
 
 def pitch_programm_linear(t):
     """
@@ -174,6 +214,10 @@ def rocket_dynamics(t, state):
     # Compute altitude above Earth's surface
     alt = r - c.r_earth                # altitude of the rocket; [m]
 
+    # Check main engine state and second engine state
+    event_main_engine_cutoff(t, state)
+    event_second_engine_ignition(t)
+    
     # --- Get current thrust, Isp ---
     F_T, Isp = thrust_Isp()
 
