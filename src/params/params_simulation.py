@@ -5,9 +5,9 @@
 import numpy as np
 
 # -------------- Gravitiy Turn --------------
-max_angle_of_attack = - np.deg2rad(3)       # max. angle of attack during pitch programm; [rad]
-alt_initial_kick = 20e3                     # altitude to start gravity turn; [m]
-duration_initial_kick = 15.                 # duration of gravity turn; [s]
+max_angle_of_attack = - np.deg2rad(30)       # max. angle of attack during pitch programm; [rad]
+alt_initial_kick = 500                     # altitude to start gravity turn; [m]
+duration_initial_kick = 30.                 # duration of gravity turn; [s]
 
 
 # -------------- For Integration --------------

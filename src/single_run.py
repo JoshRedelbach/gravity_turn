@@ -31,7 +31,7 @@ def run():
     #===================================================
     
     # Define new initial state
-    initial_state_2 = sol_1.y[-1]
+    initial_state_2 = sol_1.y[:, -1]
 
     # Adjust mass -> perform stage separation
     initial_state_2[4] = initial_state_2[4] - par_roc.m_structure_1
@@ -41,16 +41,15 @@ def run():
     time_2 = 500   #<------TODO
     
     # Call simulation for stage 1
+    print("Second Simulation started!")
     sol_2 = rocket.simulate_trajectory(init_time_2, time_2, initial_state_2, False)
-
+    
+    data = np.concatenate((sol_1.y, sol_2.y), axis=1)
+    time_steps_simulation = np.concatenate((sol_1.t, sol_2.t))
 
     #===================================================
     # Plot and analyze results
     #===================================================
-
-
-    data = np.concatenate((sol_1.y, sol_2.y), axis=1)
-    time_steps_simulation = np.concatenate((sol_1.t, sol_2.t))
 
     # Plot results
     plot_results.single_run(time_steps_simulation, data)
