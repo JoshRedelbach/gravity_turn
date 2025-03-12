@@ -20,8 +20,6 @@ def single_run(time_steps, data):
             * data[2]: velocity norm; [m/s]
             * data[3]: flight path angle; [rad]
             * data[4]: mass of the rocket; [kg]
-        - angle_attack_values: array of angle of attack values; [rad]
-        - angle_attack_times: array of time steps corresponding to the angle of attack values; [s]
 
     Plots the following data over time:
         - altitude over downtrack
