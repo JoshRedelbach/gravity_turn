@@ -54,6 +54,13 @@ def run():
     
     data = np.concatenate((sol_1.y, sol_2.y), axis=1)
     time_steps_simulation = np.concatenate((sol_1.t, sol_2.t))
+    
+    a, e, r_apo, r_peri = rocket.get_orbital_elements(data[1,-1], data[2,-1], data[3,-1])
+    
+    print("\nSemimajor axis: ", a, "m")
+    print("Eccentricity: ", e)
+    print("Apoapsis altitude: ", (r_apo - c.r_earth)/1000, "km")
+    print("Periapsis altitude: ", (r_peri - c.r_earth)/1000, "km")
 
     #===================================================
     # Plot and analyze results

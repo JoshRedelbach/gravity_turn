@@ -74,7 +74,7 @@ def interrupt_orbit_reached(t, y):
     v_desired = np.sqrt(c.mu_earth / r_desired)
 
     epsilon_r = 5e3                        # margin for the orbit radius check
-    epsilon_v = 100                          # margin for the orbit velocity check
+    epsilon_v = 50                          # margin for the orbit velocity check
     epsilon_gamma = np.deg2rad(2.)          # margin for the flight path angle check
 
     if abs(r_desired - r) < epsilon_r and abs(v_desired - v) < epsilon_v and abs(gamma) < epsilon_gamma:
@@ -177,6 +177,32 @@ def event_second_engine_ignition(t):
 #===================================================
 # Define functions
 #===================================================
+
+def get_orbital_elements(r, v_inertial, gamma_inertial, mu = c.mu_earth):
+    """
+    Computes the orbital parameters given the input state.
+    
+    NOTE: Note that velocity and gamma should be the relative to the inertial (ECI) reference frame, not the ECEF frame.
+    
+    Input:
+        - r: radial distance to Earth's center; [m]
+        - v_inertial: velocity relative to ECI frame; [m/s]
+        - gamma_inertial: flight path angle relative to ECI frame; [rad]
+    
+    Output:
+        - a: semimajor axis; [m]
+        - e: eccentricity;
+        - r_apo: apoapsis radius; [m]
+        - r_peri: apoapsis radius; [m]
+    """
+    
+    a = (mu*r) / ((2*mu) - (r*v_inertial**2))
+    e = (1 - (r*v_inertial*np.cos(gamma_inertial))**2 / (mu*a))**0.5
+    r_apo = a * (1+e)
+    r_peri = a * (1-e)
+    
+    return a, e, r_apo, r_peri
+    
 
 def thrust_Isp():
     """

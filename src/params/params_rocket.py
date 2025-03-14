@@ -25,13 +25,14 @@ m_structure_1 = 22222   # mass structure; [kg]
 m_prop_1 = 200e3        # mass propellant; [kg]
 
 # 2. Stage
-Isp_2 = 420             # specific impulse; [s]
-F_thrust_2 = 900e3      # thrust of engine; [N]
-m_structure_2 = 3333    # mass structure; [kg]
-m_prop_2 = 30e3         # mass propellant; [kg]
+throttle = 1.1                  # engine throttle (0 to 1);
+Isp_2 = 420                     # specific impulse; [s]
+F_thrust_2 = throttle * 900e3   # thrust of engine; [N]
+m_structure_2 = 3333            # mass structure; [kg]
+m_prop_2 = 30e3 + 15e3          # mass propellant; [kg]
 
 # Payload
-m_payload = 0           # mass of payload; [kg]
+m_payload = 0e3           # mass of payload; [kg]
 
 # Define time steps for events after main engine cutoff
 delta_time_stage_separation = 3             # time when stage separation should take place after main engine cutoff
