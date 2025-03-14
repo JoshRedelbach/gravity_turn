@@ -73,8 +73,8 @@ def interrupt_orbit_reached(t, y):
     r_desired = c.r_earth + par_sim.alt_desired
     v_desired = np.sqrt(c.mu_earth / r_desired)
 
-    epsilon_r = 10e3                        # margin for the orbit radius check
-    epsilon_v = 200                          # margin for the orbit velocity check
+    epsilon_r = 5e3                        # margin for the orbit radius check
+    epsilon_v = 100                          # margin for the orbit velocity check
     epsilon_gamma = np.deg2rad(2.)          # margin for the flight path angle check
 
     if abs(r_desired - r) < epsilon_r and abs(v_desired - v) < epsilon_v and abs(gamma) < epsilon_gamma:
