@@ -112,6 +112,24 @@ def interrupt_ground_collision(t, y):
         return 0
     return 1
 
+
+def interrupt_velocity_exceeded(t, y):
+    """
+    Returns zero, if the current velocity exceeds the velocity of the desired orbit.
+    
+    Input:
+        - t: current time since launch; [s]
+        - y: current state vector
+    """
+    v = y[2]
+    r_desired = c.r_earth + par_sim.alt_desired
+    v_desired = np.sqrt(c.mu_earth / r_desired)
+    margin = 300            # [m/s]
+    if v > (v_desired + margin):
+        print("Interrupt Desired Velocity Exceeded happened at time ", t)
+        return 0
+    return 1
+
     
     
 #===================================================
@@ -317,9 +335,9 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag):
     t_eval = np.arange(init_time, init_time + time_stamp + par_sim.time_step, par_sim.time_step)
 
     if stage_1_flag:
-        interrupt_list = [interrupt_radius_check, interrupt_stage_separation, interrupt_ground_collision]
+        interrupt_list = [interrupt_radius_check, interrupt_stage_separation, interrupt_ground_collision, interrupt_velocity_exceeded]
     else:
-        interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_orbit_reached, interrupt_ground_collision]
+        interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_orbit_reached, interrupt_ground_collision, interrupt_velocity_exceeded]
     
     for interrupt in interrupt_list:
         interrupt.terminal = True
