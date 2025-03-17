@@ -6,6 +6,7 @@ import components.environment as env
 import params.constants as c
 import params.params_rocket as par_roc
 import params.params_simulation as par_sim
+import plotting.plot_results as plot_results
 
 import numpy as np
 from scipy.integrate import solve_ivp
@@ -368,5 +369,67 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, SS_thro
     for interrupt in interrupt_list:
         interrupt.terminal = True
         interrupt.direction = 0
+        
+    print(main_engine_cutoff)
     
     return solve_ivp(rocket_dynamics, y0=state_init, t_span=t_span, t_eval=t_eval, max_step=1, events=interrupt_list, args=(SS_throttle, initial_kick_angle))
+
+def run(SS_throttle, initial_kick_angle):
+    
+    global time_kick_start, kick_performed, time_raise, main_engine_cutoff, second_engine_ignition, stage_2_burnt, time_main_engine_cutoff
+
+    # ---- Debugging ---- 
+    # Print desired orbit
+    r_desired = c.r_earth + par_sim.alt_desired
+    v_desired = np.sqrt(c.mu_earth / r_desired)
+    print(r_desired)
+    print(v_desired)
+
+    #===================================================
+    # Simulation until stage separation
+    #===================================================
+
+    # Define initial state
+    initial_mass = par_roc.m_structure_1 + par_roc.m_prop_1 + par_roc.m_structure_2 + par_roc.m_prop_2 + par_roc.m_payload
+    initial_state_1 = [0., c.r_earth, 0., np.deg2rad(90.), initial_mass]
+
+    # Define time of simulation 1
+    time_1 = 500.   #<------TODO
+
+    # Call simulation for stage 1
+    sol_1 = simulate_trajectory(0, time_1, initial_state_1, True, SS_throttle, initial_kick_angle)
+
+    
+    #===================================================
+    # Simulation after stage separation
+    #===================================================
+    
+    # Define new initial state
+    initial_state_2 = sol_1.y[:, -1]
+
+    # Adjust mass -> perform stage separation
+    initial_state_2[4] = initial_state_2[4] - par_roc.m_structure_1
+    
+    # Define time of simulation 2
+    init_time_2 = sol_1.t[-1]
+    time_2 = 500.   #<------TODO
+    
+    # Call simulation for stage 1
+    print("Second Simulation started!")
+    sol_2 = simulate_trajectory(init_time_2, time_2, initial_state_2, False, SS_throttle, initial_kick_angle)
+    
+    data = np.concatenate((sol_1.y, sol_2.y), axis=1)
+    time_steps_simulation = np.concatenate((sol_1.t, sol_2.t))
+    
+    #===================================================
+    # Reset global variables
+    #===================================================
+    time_kick_start = None                          # time when the initial kick starts
+    kick_performed = False                          # flag to check if the initial kick has been performed
+    time_raise = par_sim.duration_initial_kick / 2. # time to raise the angle of attack to the maximum value; [s]
+    main_engine_cutoff = False                      # flag to check if the first stage engine is cutoff
+    second_engine_ignition = False                  # flag to check if the second stage engine is ignited
+    stage_2_burnt = False                           # flag to check if the second stage is burnt
+    time_main_engine_cutoff = None                  # time when the main engine cuts off
+    
+    return time_steps_simulation, data
