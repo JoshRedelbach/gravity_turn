@@ -25,9 +25,8 @@ m_structure_1 = 22222   # mass structure; [kg]
 m_prop_1 = 200e3        # mass propellant; [kg]
 
 # 2. Stage
-throttle = 1.1                  # engine throttle (0 to 1);
 Isp_2 = 420                     # specific impulse; [s]
-F_thrust_2 = throttle * 900e3   # thrust of engine; [N]
+F_thrust_2 = 900e3   # thrust of engine; [N]
 m_structure_2 = 3333            # mass structure; [kg]
 m_prop_2 = 30e3 + 15e3          # mass propellant; [kg]
 

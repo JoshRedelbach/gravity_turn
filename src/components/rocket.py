@@ -27,7 +27,7 @@ time_main_engine_cutoff = None                  # time when the main engine cuts
 # Interrupt functions for simulation
 #===================================================
 
-def interrupt_radius_check(t, y):
+def interrupt_radius_check(t, y, SS_throttle, initial_kick_angle):
     """
     Returns zero, if the current radius exceeds the radius of the desired.
     
@@ -43,7 +43,7 @@ def interrupt_radius_check(t, y):
     return 1
 
 
-def interrupt_stage_separation(t, y):
+def interrupt_stage_separation(t, y, SS_throttle, initial_kick_angle):
     """
     Returns zero, if the stage separation was performed successfully (everything that need to be done until the m_structure_1 needs to be separated.)
     
@@ -60,7 +60,7 @@ def interrupt_stage_separation(t, y):
     return 1
 
 
-def interrupt_orbit_reached(t, y):
+def interrupt_orbit_reached(t, y, SS_throttle, initial_kick_angle):
     """
     Returns zero, if the desired orbit is reached successfully meaning that current velocity norm, radius and flight path angle fit the requirements (within a certain margin).
     
@@ -83,7 +83,7 @@ def interrupt_orbit_reached(t, y):
     return 1
 
 
-def interrupt_stage_2_burnt(t, y):
+def interrupt_stage_2_burnt(t, y, SS_throttle, initial_kick_angle):
     """
     Returns zero, if the second stage is fully burnt.
     
@@ -98,7 +98,7 @@ def interrupt_stage_2_burnt(t, y):
     return 1
 
 
-def interrupt_ground_collision(t, y):
+def interrupt_ground_collision(t, y, SS_throttle, initial_kick_angle):
     """
     Returns zero, if the current radius is below radius of earth
     
@@ -107,13 +107,13 @@ def interrupt_ground_collision(t, y):
         - y: current state vector
     """
     r = y[1]
-    if r < c.r_earth:
+    if r < c.r_earth - 1e3:
         print("Interrupt Earth Collision happened at time ", t)
         return 0
     return 1
 
 
-def interrupt_velocity_exceeded(t, y):
+def interrupt_velocity_exceeded(t, y, SS_throttle, initial_kick_angle):
     """
     Returns zero, if the current velocity exceeds the velocity of the desired orbit.
     
@@ -124,7 +124,7 @@ def interrupt_velocity_exceeded(t, y):
     v = y[2]
     r_desired = c.r_earth + par_sim.alt_desired
     v_desired = np.sqrt(c.mu_earth / r_desired)
-    margin = 300            # [m/s]
+    margin = 0            # [m/s]
     if v > (v_desired + margin):
         print("Interrupt Desired Velocity Exceeded happened at time ", t)
         return 0
@@ -204,7 +204,7 @@ def get_orbital_elements(r, v_inertial, gamma_inertial, mu = c.mu_earth):
     return a, e, r_apo, r_peri
     
 
-def thrust_Isp():
+def thrust_Isp(SS_throttle):
     """
     Returns the current thrust and Isp.
     
@@ -224,7 +224,7 @@ def thrust_Isp():
         F_T = 0
         Isp = par_roc.Isp_1
     elif main_engine_cutoff == True and second_engine_ignition == True:
-        F_T = par_roc.F_thrust_2
+        F_T = par_roc.F_thrust_2 * SS_throttle
         Isp = par_roc.Isp_2
     else:
         print("Warning: Both first stage and second stage engines are running at the same time.")
@@ -233,7 +233,7 @@ def thrust_Isp():
 
 
 
-def pitch_programm_linear(t):
+def pitch_programm_linear(t, initial_kick_angle):
     """
     Returns the angle of attack for the initial kick.
     Increases the angle of attack to a certain value and decreases it afterwards in a linear way.
@@ -259,15 +259,15 @@ def pitch_programm_linear(t):
         if t < (time_kick_start + time_raise):
             # define rate of angle change
             angle_rate = (t - time_kick_start) / (time_raise)
-            return par_sim.max_angle_of_attack * angle_rate
+            return initial_kick_angle * angle_rate
         else:
             # define rate of angle change
             angle_rate = (t - (time_kick_start + time_raise)) / (time_raise)
-            return par_sim.max_angle_of_attack * (1 - angle_rate)
+            return initial_kick_angle * (1 - angle_rate)
 
 
 
-def rocket_dynamics(t, state):
+def rocket_dynamics(t, state, SS_throttle, initial_kick_angle):
     """
     Simulates the dynamics of the rocket. This function will be integrated by the scipy.solve_ivp function
     
@@ -299,11 +299,11 @@ def rocket_dynamics(t, state):
         event_second_engine_ignition(t)
     
     # --- Get current thrust, Isp ---
-    F_T, Isp = thrust_Isp()
+    F_T, Isp = thrust_Isp(SS_throttle)
 
     # --- Get current angle of attack ---
     if alt > par_sim.alt_initial_kick and (not kick_performed):
-        alpha = pitch_programm_linear(t)
+        alpha = pitch_programm_linear(t, initial_kick_angle)
     else:
         alpha = 0.
 
@@ -345,7 +345,7 @@ def rocket_dynamics(t, state):
 
 
 
-def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag):
+def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, SS_throttle, initial_kick_angle):
     """
     Simulates the trajectory of the rocket until a given time stamps or until a certain interrupt function is called.
 
@@ -369,4 +369,4 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag):
         interrupt.terminal = True
         interrupt.direction = 0
     
-    return solve_ivp(rocket_dynamics, y0=state_init, t_span=t_span, t_eval=t_eval, max_step=1, events=interrupt_list)
+    return solve_ivp(rocket_dynamics, y0=state_init, t_span=t_span, t_eval=t_eval, max_step=1, events=interrupt_list, args=(SS_throttle, initial_kick_angle))
