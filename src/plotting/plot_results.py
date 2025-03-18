@@ -46,17 +46,17 @@ def single_run(time_steps, data, initial_kick_angle):
     # Recreate angle of attack values
     # Initialize empty list with length of t
     angle_of_attacks = [0.0] * len(time_steps)
-    for i, t in enumerate(time_steps):
-        if t < r.time_kick_start:
-            angle_of_attacks[i] = 0.0
-        elif t > (r.time_kick_start + par_sim.duration_initial_kick):
-            angle_of_attacks[i] = 0.0
-        elif t > (r.time_kick_start + (par_sim.duration_initial_kick / 2.)):
-            angle_rate = (t - (r.time_kick_start + r.time_raise)) / (r.time_raise)
-            angle_of_attacks[i] = initial_kick_angle * (1 - angle_rate)
-        else:
-            angle_rate = (t - r.time_kick_start) / (r.time_raise)
-            angle_of_attacks[i] = initial_kick_angle * angle_rate
+    # for i, t in enumerate(time_steps):
+    #     if t < r.time_kick_start:
+    #         angle_of_attacks[i] = 0.0
+    #     elif t > (r.time_kick_start + par_sim.duration_initial_kick):
+    #         angle_of_attacks[i] = 0.0
+    #     elif t > (r.time_kick_start + (par_sim.duration_initial_kick / 2.)):
+    #         angle_rate = (t - (r.time_kick_start + r.time_raise)) / (r.time_raise)
+    #         angle_of_attacks[i] = initial_kick_angle * (1 - angle_rate)
+    #     else:
+    #         angle_rate = (t - r.time_kick_start) / (r.time_raise)
+    #         angle_of_attacks[i] = initial_kick_angle * angle_rate
 
     # -------------- Plotting --------------
     fig1, axs1 = plt.subplots(2, 4, figsize=(15, 15))

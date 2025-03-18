@@ -16,7 +16,7 @@ def kick_angle_objective(kick_angle, throttle):
     return last_gamma
 
 def find_initial_kick_angle(throttle):
-    return bisect(kick_angle_objective, -np.deg2rad(20), -np.deg2rad(10), xtol=1e-6, args=(throttle,))
+    return bisect(kick_angle_objective, -np.deg2rad(60), -np.deg2rad(0.5), xtol=1e-6, args=(throttle,))
 
 def second_throttle_objective(throttle):
     print("Throttle: ", throttle, "----------------------------")
@@ -33,10 +33,15 @@ def second_throttle_objective(throttle):
     a, e, r_apo, r_peri = rocket.get_orbital_elements(data[1, -1], data[2, -1], data[3, -1])
     print("Perigee: ", r_peri - c.r_earth, "m")
     print("Apogee: ", r_apo - c.r_earth, "m")
+    print("Eccentricity: ", e)
+    print("Altitude: ", (last_radius - c.r_earth)/1000, "km")
+    r_desired = c.r_earth + par_sim.alt_desired
+    v_desired = np.sqrt(c.mu_earth / r_desired)
+    print("delta_Velocity: ", data[2, -1] - v_desired, "m/s")
     
     return last_radius - c.r_earth - par_sim.alt_desired
 
 def find_throttle():
-    return bisect(second_throttle_objective, 1, 3, xtol=1e-1)
+    return bisect(second_throttle_objective, 2, 0.01, xtol=1e-6)
 
 find_throttle()
