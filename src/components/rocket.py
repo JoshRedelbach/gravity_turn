@@ -74,7 +74,7 @@ def interrupt_orbit_reached(t, y, SS_throttle, initial_kick_angle):
     v_desired = np.sqrt(c.mu_earth / r_desired)
 
     epsilon_r = 5e3                        # margin for the orbit radius check
-    epsilon_v = 50                          # margin for the orbit velocity check
+    epsilon_v = 10                          # margin for the orbit velocity check
     epsilon_gamma = np.deg2rad(2.)          # margin for the flight path angle check
 
     if abs(r_desired - r) < epsilon_r and abs(v_desired - v) < epsilon_v and abs(gamma) < epsilon_gamma:

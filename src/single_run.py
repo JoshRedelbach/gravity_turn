@@ -47,7 +47,7 @@ def run(SS_throttle, initial_kick_angle):
     # Define time of simulation 2
     init_time_2 = sol_1.t[-1]
     time_2 = 500.   #<------TODO
-    
+
     # Call simulation for stage 1
     print("Second Simulation started!")
     sol_2 = rocket.simulate_trajectory(init_time_2, time_2, initial_state_2, False, SS_throttle, initial_kick_angle)
@@ -56,7 +56,7 @@ def run(SS_throttle, initial_kick_angle):
     time_steps_simulation = np.concatenate((sol_1.t, sol_2.t))
     
     plot_results.single_run(time_steps_simulation, data, initial_kick_angle)
-    
+
     return time_steps_simulation, data
 
 
@@ -79,7 +79,7 @@ def plot(time, data, initial_kick_angle):
 
 if __name__ == '__main__':
     
-    SS_throttle = 1.1
-    initial_kick_angle = - np.deg2rad(80)
+    SS_throttle = 1.069002032279968
+    initial_kick_angle = - np.deg2rad(14.441642761230465)
     time, data = run(SS_throttle, initial_kick_angle)
-    plot(time, data, par_sim.max_angle_of_attack)
+    plot(time, data, initial_kick_angle)
