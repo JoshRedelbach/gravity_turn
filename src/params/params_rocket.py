@@ -28,7 +28,7 @@ m_prop_1 = 200e3        # mass propellant; [kg]
 Isp_2 = 420                     # specific impulse; [s]
 F_thrust_2 = 900e3   # thrust of engine; [N]
 m_structure_2 = 3333            # mass structure; [kg]
-m_prop_2 = 30e3 + 15e3          # mass propellant; [kg]
+m_prop_2 = 30e3          # mass propellant; [kg]
 
 # Payload
 m_payload = 0e3           # mass of payload; [kg]
