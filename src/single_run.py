@@ -2,7 +2,6 @@
             SINGLE RUN SIMULATION 
 =============================================== """
 
-import params.params_rocket as par_roc
 import params.params_simulation as par_sim
 import components.rocket as rocket
 import plotting.plot_results as plot_results
@@ -29,7 +28,7 @@ def plot(time, data, initial_kick_angle):
 
 if __name__ == '__main__':
     
-    SS_throttle = 2
-    initial_kick_angle = - np.deg2rad(17.416805744171135)
+    SS_throttle = 1
+    initial_kick_angle = - np.deg2rad(13.171052831411357)
     time, data = rocket.run(SS_throttle, initial_kick_angle)
     plot(time, data, par_sim.max_angle_of_attack)

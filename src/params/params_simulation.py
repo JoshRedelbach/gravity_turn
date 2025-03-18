@@ -12,7 +12,7 @@ duration_initial_kick = 20.                 # duration of gravity turn; [s]
 
 # -------------- For Integration --------------
 number_of_points = 1000                     # number of data points that are calculated in scipy.solve_ivp(...)
-time_step = 0.005                            # step size for integration; [s]
+time_step = 0.001                            # step size for integration; [s]
 
 
 # -------------- Final Conditions --------------

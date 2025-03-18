@@ -4,7 +4,7 @@
 
 import components.environment as env
 import params.constants as c
-import params.params_rocket as par_roc
+import launch_vehicles.MK1 as par_roc
 import params.params_simulation as par_sim
 import plotting.plot_results as plot_results
 
@@ -74,12 +74,12 @@ def interrupt_orbit_reached(t, y, SS_throttle, initial_kick_angle):
     r_desired = c.r_earth + par_sim.alt_desired
     v_desired = np.sqrt(c.mu_earth / r_desired)
 
-    epsilon_r = 2e3                        # margin for the orbit radius check
-    epsilon_v = 100                          # margin for the orbit velocity check
+    epsilon_r = 100                        # margin for the orbit radius check
+    epsilon_v = 1                          # margin for the orbit velocity check
     epsilon_gamma = np.deg2rad(0.1)          # margin for the flight path angle check
 
     if abs(r_desired - r) < epsilon_r and abs(v_desired - v) < epsilon_v and abs(gamma) < epsilon_gamma:
-        print("Interrupt Desired Orbit reached at time ", t)
+        #print("Interrupt Desired Orbit reached at time ", t)
         return 0
     return 1
 
@@ -125,11 +125,11 @@ def interrupt_velocity_exceeded(t, y, SS_throttle, initial_kick_angle):
     v = y[2]
     r_desired = c.r_earth + par_sim.alt_desired
     v_desired = np.sqrt(c.mu_earth / r_desired)
-    margin = 200            # [m/s]
-    if v > (v_desired + margin):
-        #print("Interrupt Desired Velocity Exceeded happened at time ", t, "\n")
-        return 0
-    return 1
+    margin = 0            # [m/s]
+    # if v > (v_desired + margin):
+    #     #print("Interrupt Desired Velocity Exceeded happened at time ", t, "\n")
+    #     return 0
+    return v - v_desired
 
     
     
@@ -364,7 +364,7 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, SS_thro
     if stage_1_flag:
         interrupt_list = [interrupt_radius_check, interrupt_stage_separation, interrupt_ground_collision, interrupt_velocity_exceeded]
     else:
-        interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_ground_collision, interrupt_orbit_reached, interrupt_velocity_exceeded]
+        interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_ground_collision, interrupt_velocity_exceeded]
     
     for interrupt in interrupt_list:
         interrupt.terminal = True
@@ -372,11 +372,22 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, SS_thro
         
     #print(main_engine_cutoff)
     
-    return solve_ivp(rocket_dynamics, y0=state_init, t_span=t_span, t_eval=t_eval, max_step=1, events=interrupt_list, args=(SS_throttle, initial_kick_angle))
+    return solve_ivp(rocket_dynamics, y0=state_init, t_span=t_span, t_eval=t_eval, max_step=1, events=interrupt_list, atol=1e-8, args=(SS_throttle, initial_kick_angle))
 
 def run(SS_throttle, initial_kick_angle):
     
     global time_kick_start, kick_performed, time_raise, main_engine_cutoff, second_engine_ignition, stage_2_burnt, time_main_engine_cutoff
+    
+    #===================================================
+    # Reset global variables
+    #===================================================
+    time_kick_start = None                          # time when the initial kick starts
+    kick_performed = False                          # flag to check if the initial kick has been performed
+    time_raise = par_sim.duration_initial_kick / 2. # time to raise the angle of attack to the maximum value; [s]
+    main_engine_cutoff = False                      # flag to check if the first stage engine is cutoff
+    second_engine_ignition = False                  # flag to check if the second stage engine is ignited
+    stage_2_burnt = False                           # flag to check if the second stage is burnt
+    time_main_engine_cutoff = None                  # time when the main engine cuts off
 
     # ---- Debugging ---- 
     # Print desired orbit
@@ -420,16 +431,5 @@ def run(SS_throttle, initial_kick_angle):
     
     data = np.concatenate((sol_1.y, sol_2.y), axis=1)
     time_steps_simulation = np.concatenate((sol_1.t, sol_2.t))
-    
-    #===================================================
-    # Reset global variables
-    #===================================================
-    time_kick_start = None                          # time when the initial kick starts
-    kick_performed = False                          # flag to check if the initial kick has been performed
-    time_raise = par_sim.duration_initial_kick / 2. # time to raise the angle of attack to the maximum value; [s]
-    main_engine_cutoff = False                      # flag to check if the first stage engine is cutoff
-    second_engine_ignition = False                  # flag to check if the second stage engine is ignited
-    stage_2_burnt = False                           # flag to check if the second stage is burnt
-    time_main_engine_cutoff = None                  # time when the main engine cuts off
     
     return time_steps_simulation, data
