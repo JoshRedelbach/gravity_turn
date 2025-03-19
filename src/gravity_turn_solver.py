@@ -16,7 +16,7 @@ def kick_angle_objective(kick_angle, throttle):
     return last_gamma
 
 def find_initial_kick_angle(throttle):
-    return bisect(kick_angle_objective, -np.deg2rad(60), -np.deg2rad(0.5), xtol=1e-6, args=(throttle,))
+    return bisect(kick_angle_objective, -np.deg2rad(60), -np.deg2rad(0.5), xtol=1e-8, args=(throttle,), maxiter=1000)
 
 def second_throttle_objective(throttle):
     print("Throttle: ", throttle, "----------------------------")
@@ -42,6 +42,6 @@ def second_throttle_objective(throttle):
     return last_radius - c.r_earth - par_sim.alt_desired
 
 def find_throttle():
-    return bisect(second_throttle_objective, 2, 0.01, xtol=1e-6)
+    return bisect(second_throttle_objective, 2, 0.01, xtol=1e-8, maxiter=1000)
 
 find_throttle()

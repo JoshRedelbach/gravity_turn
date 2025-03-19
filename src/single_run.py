@@ -28,8 +28,10 @@ def plot(time, data, initial_kick_angle):
 
 
 if __name__ == '__main__':
-    
-    SS_throttle = 2
-    initial_kick_angle = - np.deg2rad(17.416805744171135)
+
+    # Good values    
+    SS_throttle = 0.6498804903030394
+    initial_kick_angle = - np.deg2rad(19.547982692718502)
+
     time, data = rocket.run(SS_throttle, initial_kick_angle)
-    plot(time, data, par_sim.max_angle_of_attack)
+    plot(time, data, initial_kick_angle)

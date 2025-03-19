@@ -39,7 +39,7 @@ def interrupt_radius_check(t, y, SS_throttle, initial_kick_angle):
     margin = 50e3
     r = y[1]
     if r > (par_sim.alt_desired + c.r_earth + margin):
-        #print("Interrupt Radius Check happened at time ", t)
+        # print("Interrupt Radius Check happened at time ", t)
         return 0
     return 1
 
@@ -56,7 +56,7 @@ def interrupt_stage_separation(t, y, SS_throttle, initial_kick_angle):
 
     if main_engine_cutoff:
         if t >= (time_main_engine_cutoff + par_roc.delta_time_stage_separation):
-            #print("Interrupt Stage Separation happened at time ", t)
+            # print("Interrupt Stage Separation happened at time ", t)
             return 0
     return 1
 
@@ -74,9 +74,9 @@ def interrupt_orbit_reached(t, y, SS_throttle, initial_kick_angle):
     r_desired = c.r_earth + par_sim.alt_desired
     v_desired = np.sqrt(c.mu_earth / r_desired)
 
-    epsilon_r = 2e3                        # margin for the orbit radius check
-    epsilon_v = 100                          # margin for the orbit velocity check
-    epsilon_gamma = np.deg2rad(0.1)          # margin for the flight path angle check
+    epsilon_r = 2e3                               # margin for the orbit radius check in meters
+    epsilon_v = 100                               # margin for the orbit velocity check in m/s
+    epsilon_gamma = np.deg2rad(0.1)            # margin for the flight path angle check in rad
 
     if abs(r_desired - r) < epsilon_r and abs(v_desired - v) < epsilon_v and abs(gamma) < epsilon_gamma:
         print("Interrupt Desired Orbit reached at time ", t)
@@ -94,7 +94,7 @@ def interrupt_stage_2_burnt(t, y, SS_throttle, initial_kick_angle):
     """
     m = y[4]
     if m <= (par_roc.m_payload + par_roc.m_structure_2):
-        #print("Interrupt Stage 2 Burnt happened at time ", t)
+        print("Interrupt Stage 2 Burnt happened at time ", t)
         return 0
     return 1
 
@@ -109,7 +109,7 @@ def interrupt_ground_collision(t, y, SS_throttle, initial_kick_angle):
     """
     r = y[1]
     if r < c.r_earth - 1e3:
-        #print("Interrupt Earth Collision happened at time ", t)
+        # print("Interrupt Earth Collision happened at time ", t)
         return 0
     return 1
 
@@ -122,12 +122,33 @@ def interrupt_velocity_exceeded(t, y, SS_throttle, initial_kick_angle):
         - t: current time since launch; [s]
         - y: current state vector
     """
+
+
+    # """
+    # NOTE:
+    # We could add a check here, whether the flight path angle gamma is negative or (almost) 0 right now.
+    # If it is negative, we do not interrupt even if the velocity is exceeded. We only interrupt if velocity exceeds certain margin.
+
+    # If the flight path angle is (almost) 0, we interrupt immediately if the velocity is exceeded, because then in the next step the flight path angle could get positive, which would be a problem for the bisection method.
+    # """
+
+    # gamma = y[3]
+    # v = y[2]
+    # r = y[1]
+    # a_grav = env.accel_grav(r)
+    # c_gamma = np.cos(gamma)
+
+    # dgammadt = (1./v) * ( - (a_grav - (v**2 / r)) * c_gamma )
+    # if dgammadt < 0:
+
+
+    
     v = y[2]
     r_desired = c.r_earth + par_sim.alt_desired
     v_desired = np.sqrt(c.mu_earth / r_desired)
-    margin = 200            # [m/s]
+    margin = 50            # [m/s]
     if v > (v_desired + margin):
-        #print("Interrupt Desired Velocity Exceeded happened at time ", t, "\n")
+        # print("Interrupt Desired Velocity Exceeded happened at time ", t, "\n")
         return 0
     return 1
 
@@ -364,7 +385,8 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, SS_thro
     if stage_1_flag:
         interrupt_list = [interrupt_radius_check, interrupt_stage_separation, interrupt_ground_collision, interrupt_velocity_exceeded]
     else:
-        interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_ground_collision, interrupt_orbit_reached, interrupt_velocity_exceeded]
+        # interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_ground_collision, interrupt_orbit_reached, interrupt_velocity_exceeded]
+        interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_ground_collision, interrupt_velocity_exceeded]
     
     for interrupt in interrupt_list:
         interrupt.terminal = True
