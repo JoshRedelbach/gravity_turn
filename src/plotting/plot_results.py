@@ -5,8 +5,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-import params.constants as c
-import params.params_simulation as par_sim
+import components.constants as c
+import init as par_sim
 import components.rocket as r
 
 

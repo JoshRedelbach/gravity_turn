@@ -2,8 +2,6 @@
                 MK1 LAUNCH VEHICLE
 =============================================== """
 
-import params.constants as c
-
 # -------------- Payload Mass --------------
 m_payload = 0e3           # payload mass; [kg]
 
@@ -40,4 +38,4 @@ F_thrust_2 = 900e3       # thrust of engine; [N]
 
 # -------------- Mass Properties --------------
 m_structure_2 = 3333            # mass structure; [kg]
-m_prop_2 = 30e3 + 12e3          # mass propellant; [kg]
+m_prop_2 = 30e3 + 5e3          # mass propellant; [kg]

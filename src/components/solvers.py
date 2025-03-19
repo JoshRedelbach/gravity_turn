@@ -1,14 +1,18 @@
 """ ===============================================
-                GRAVITY TURN SOLVER
+                GRAVITY TURN SOLVERS
 =============================================== """
 
 import numpy as np
 from scipy.optimize import bisect
 from components.rocket import run
 
-import params.constants as c
-import params.params_simulation as par_sim
+import components.constants as c
+import init as par_sim
 import components.rocket as rocket
+
+# =======================================================
+#  Direct no coast orbit injection solver (gravity turn)
+# =======================================================
 
 def kick_angle_objective(kick_angle, throttle):
     time, data = run(throttle, kick_angle)
@@ -44,6 +48,4 @@ def second_throttle_objective(throttle):
     return last_radius - c.r_earth - par_sim.alt_desired
 
 def find_throttle():
-    return bisect(second_throttle_objective, 2, 0.5, xtol=1e-6, maxiter=500)
-
-find_throttle()
+    return bisect(second_throttle_objective, 2, 0.3, xtol=1e-6, maxiter=500)

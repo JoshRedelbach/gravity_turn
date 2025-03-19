@@ -3,26 +3,15 @@
 =============================================== """
 
 import components.environment as env
-import params.constants as c
-import launch_vehicles.MK1 as par_roc
-import params.params_simulation as par_sim
+import components.constants as c
+import init
 import plotting.plot_results as plot_results
-
 import numpy as np
 from scipy.integrate import solve_ivp
+from components.rocket_selector import select_rocket
 
-
-#===================================================
-# Define global variables
-#===================================================
-time_kick_start = None                          # time when the initial kick starts
-kick_performed = False                          # flag to check if the initial kick has been performed
-time_raise = par_sim.duration_initial_kick / 2. # time to raise the angle of attack to the maximum value; [s]
-main_engine_cutoff = False                      # flag to check if the first stage engine is cutoff
-second_engine_ignition = False                  # flag to check if the second stage engine is ignited
-stage_2_burnt = False                           # flag to check if the second stage is burnt
-time_main_engine_cutoff = None                  # time when the main engine cuts off
-
+# Selected Launch Vehicle
+par_roc = select_rocket(init.LV)  # Replace 'MK1' with the name of your desired rocket module
 
 #===================================================
 # Interrupt functions for simulation
@@ -38,7 +27,7 @@ def interrupt_radius_check(t, y, SS_throttle, initial_kick_angle):
     """
     margin = 50e3
     r = y[1]
-    if r > (par_sim.alt_desired + c.r_earth + margin):
+    if r > (init.alt_desired + c.r_earth + margin):
         #print("Interrupt Radius Check happened at time ", t)
         return 0
     return 1
@@ -61,27 +50,27 @@ def interrupt_stage_separation(t, y, SS_throttle, initial_kick_angle):
     return 1
 
 
-def interrupt_orbit_reached(t, y, SS_throttle, initial_kick_angle):
-    """
-    Returns zero, if the desired orbit is reached successfully meaning that current velocity norm, radius and flight path angle fit the requirements (within a certain margin).
+# def interrupt_orbit_reached(t, y, SS_throttle, initial_kick_angle):
+#     """
+#     Returns zero, if the desired orbit is reached successfully meaning that current velocity norm, radius and flight path angle fit the requirements (within a certain margin).
     
-    Input:
-        - t: current time since launch; [s]
-        - y: current state vector
-    """
-    _, r, v, gamma, _ = y
+#     Input:
+#         - t: current time since launch; [s]
+#         - y: current state vector
+#     """
+#     _, r, v, gamma, _ = y
     
-    r_desired = c.r_earth + par_sim.alt_desired
-    v_desired = np.sqrt(c.mu_earth / r_desired)
+#     r_desired = c.r_earth + init.alt_desired
+#     v_desired = np.sqrt(c.mu_earth / r_desired)
 
-    epsilon_r = 100                        # margin for the orbit radius check
-    epsilon_v = 1                          # margin for the orbit velocity check
-    epsilon_gamma = np.deg2rad(0.1)          # margin for the flight path angle check
+#     epsilon_r = 100                        # margin for the orbit radius check
+#     epsilon_v = 1                          # margin for the orbit velocity check
+#     epsilon_gamma = np.deg2rad(0.1)          # margin for the flight path angle check
 
-    if abs(r_desired - r) < epsilon_r and abs(v_desired - v) < epsilon_v and abs(gamma) < epsilon_gamma:
-        #print("Interrupt Desired Orbit reached at time ", t)
-        return 0
-    return 1
+#     if abs(r_desired - r) < epsilon_r and abs(v_desired - v) < epsilon_v and abs(gamma) < epsilon_gamma:
+#         #print("Interrupt Desired Orbit reached at time ", t)
+#         return 0
+#     return 1
 
 
 def interrupt_stage_2_burnt(t, y, SS_throttle, initial_kick_angle):
@@ -123,7 +112,7 @@ def interrupt_velocity_exceeded(t, y, SS_throttle, initial_kick_angle):
         - y: current state vector
     """
     v = y[2]
-    r_desired = c.r_earth + par_sim.alt_desired
+    r_desired = c.r_earth + init.alt_desired
     v_desired = np.sqrt(c.mu_earth / r_desired)
     margin = 0            # [m/s]
     # if v > (v_desired + margin):
@@ -134,7 +123,7 @@ def interrupt_velocity_exceeded(t, y, SS_throttle, initial_kick_angle):
     
     
 #===================================================
-# Event functions to interrupt
+# Event functions
 #===================================================
 
 def event_main_engine_cutoff(t, y):
@@ -250,7 +239,7 @@ def pitch_programm_linear(t, initial_kick_angle):
         #print("\nInitial kick started at t = ", t)
         return 0.0
     
-    elif t > (time_kick_start + par_sim.duration_initial_kick):     # check if kick has ended
+    elif t > (time_kick_start + init.duration_initial_kick):     # check if kick has ended
         kick_performed = True
         #print("\nInitial kick ended at t = ", t)
         return 0.0
@@ -303,7 +292,7 @@ def rocket_dynamics(t, state, SS_throttle, initial_kick_angle):
     F_T, Isp = thrust_Isp(SS_throttle)
 
     # --- Get current angle of attack ---
-    if alt > par_sim.alt_initial_kick and (not kick_performed):
+    if alt > init.alt_initial_kick and (not kick_performed):
         alpha = pitch_programm_linear(t, initial_kick_angle)
     else:
         alpha = 0.
@@ -359,7 +348,7 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, SS_thro
     """
 
     t_span = (init_time, init_time + time_stamp + 1)
-    t_eval = np.arange(init_time, init_time + time_stamp + par_sim.time_step, par_sim.time_step)
+    t_eval = np.arange(init_time, init_time + time_stamp + init.time_step, init.time_step)
 
     if stage_1_flag:
         interrupt_list = [interrupt_radius_check, interrupt_stage_separation, interrupt_ground_collision, interrupt_velocity_exceeded]
@@ -374,6 +363,9 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, SS_thro
     
     return solve_ivp(rocket_dynamics, y0=state_init, t_span=t_span, t_eval=t_eval, max_step=1, events=interrupt_list, atol=1e-8, args=(SS_throttle, initial_kick_angle))
 
+
+# TRY TO PUT THE RUN FUNCTIONS IN THE CORRESPONDING SIM FILES <------------------------------------------------ !!!
+
 def run(SS_throttle, initial_kick_angle):
     
     global time_kick_start, kick_performed, time_raise, main_engine_cutoff, second_engine_ignition, stage_2_burnt, time_main_engine_cutoff
@@ -383,7 +375,7 @@ def run(SS_throttle, initial_kick_angle):
     #===================================================
     time_kick_start = None                          # time when the initial kick starts
     kick_performed = False                          # flag to check if the initial kick has been performed
-    time_raise = par_sim.duration_initial_kick / 2. # time to raise the angle of attack to the maximum value; [s]
+    time_raise = init.duration_initial_kick / 2. # time to raise the angle of attack to the maximum value; [s]
     main_engine_cutoff = False                      # flag to check if the first stage engine is cutoff
     second_engine_ignition = False                  # flag to check if the second stage engine is ignited
     stage_2_burnt = False                           # flag to check if the second stage is burnt
@@ -391,7 +383,7 @@ def run(SS_throttle, initial_kick_angle):
 
     # ---- Debugging ---- 
     # Print desired orbit
-    r_desired = c.r_earth + par_sim.alt_desired
+    r_desired = c.r_earth + init.alt_desired
     v_desired = np.sqrt(c.mu_earth / r_desired)
     #print(r_desired)
     #print(v_desired)

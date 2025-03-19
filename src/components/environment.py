@@ -3,7 +3,7 @@
 =============================================== """
 
 import numpy as np
-import params.constants as c
+import components.constants as c
 
 # -------------- Functions --------------
 
