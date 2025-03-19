@@ -26,7 +26,6 @@ def plot(time, data, initial_kick_angle):
 
     
 def execute():
-    SS_throttle = 0.35029025077819814
-    initial_kick_angle = - np.deg2rad(12.519912475347514)
-    time, data = rocket.run(SS_throttle, initial_kick_angle)
-    plot(time, data, initial_kick_angle)
+    
+    time, data = rocket.run(init.SS_throttle, init.initial_kick_angle)
+    plot(time, data, init.initial_kick_angle)
