@@ -271,10 +271,12 @@ def pitch_programm_linear(t, initial_kick_angle):
             return initial_kick_angle * (1 - angle_rate)
         
 
+
 def apogee_check(r, v, gamma):
     """
     NOTE: NOT TESTED YET!
     
+    Performed as soon as we reached the altitude where the atmosphere can be neglected.
     Checks if the current apogee is within a certain margin close to the desired altitude and gives the required delta_v to circularize if it is or high delta_v if not.
 
     Input: 
@@ -290,6 +292,7 @@ def apogee_check(r, v, gamma):
 
     # Check if apogee is within a certain margin close to the desired altitude
     margin = 20     # meters
+    
     # check if apogee is within a certain margin close to desired altitude 
     if r_apo < (init.ALT_DESIRED + c.R_EARTH + margin) and r_apo > (init.ALT_DESIRED + c.R_EARTH - margin):
         # if that is the case: compute required delta_v to circularize the orbit
@@ -299,6 +302,11 @@ def apogee_check(r, v, gamma):
         delta_v_unsuccessful = 999999.
         return r_peri, r_apo, delta_v_unsuccessful
 
+
+
+#===================================================
+# Define Dynamics
+#===================================================
 
 
 def rocket_dynamics(t, state, ss_throttle, initial_kick_angle):
@@ -489,6 +497,11 @@ def diff_eom_advanced(s, r, v, gamma, m, lat, lon, ceta, F_L, F_D, F_T, a_grav, 
     return [dsdt, drdt, dvdt, dgammadt, dmdt, dlatdt, dlondt, dcetadt]
 
 
+
+
+#===================================================
+# Define Simulations
+#===================================================
 
 def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, stage_2_flag, ss_throttle, initial_kick_angle):
     """
