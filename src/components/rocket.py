@@ -614,7 +614,7 @@ def run_full(SS_throttle, initial_kick_angle):
 
     # Define initial state
     initial_mass = par_roc.m_structure_1 + par_roc.m_prop_1 + par_roc.m_structure_2 + par_roc.m_prop_2 + par_roc.m_payload
-    initial_state_1 = [0., c.r_earth, 0., np.deg2rad(90.), initial_mass]
+    initial_state_1 = [0., c.r_earth, 0., np.deg2rad(90.), initial_mass, 0, 0, 0]
 
     # Define time of simulation 1
     time_1 = 500.   #<------TODO

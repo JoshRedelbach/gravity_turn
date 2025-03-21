@@ -8,7 +8,7 @@ import numpy as np
 LV = 'MK1'                      # Launch Vehicle selected
 
 # -------------- Select Simulation Type ----------------
-SYM_TYPE = 1
+SYM_TYPE = 2
 """
     1 -> Single Run
     2 -> Single Run Full
