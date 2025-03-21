@@ -20,22 +20,22 @@ SYM_TYPE = 2
 # ===================================================
 
 # -------------- Gravity Turn --------------
-alt_initial_kick = 1000         # altitude to start gravity turn; [m]
-duration_initial_kick = 20.     # duration of gravity turn; [s]
+ALT_INITIAL_KICK = 1000         # altitude to start gravity turn; [m]
+DURATION_INITIAL_KICK = 20.     # duration of gravity turn; [s]
 
 
 # -------------- Time Step --------------
-time_step = 0.0001                 # step size for integration; [s]
+TIME_STEP = 0.0001                 # step size for integration; [s]
 
 
 # -------------- Desired Orbit --------------
-alt_desired = 300e3             # altitude of desired orbit; [m]
-inc_desired = np.deg2rad(0.)    # inclination of desired orbit; [rad]
+ALT_DESIRED = 300e3             # altitude of desired orbit; [m]
+INC_DESIRED = np.deg2rad(0.)    # inclination of desired orbit; [rad]
 
 
 # -------------- Launch Site --------------
-launch_lat = np.deg2rad(0.)     # latitude of launch site; [rad]
-launch_lon = np.deg2rad(0.)     # longitude of launch site; [rad]
+LAUNCH_LAT = np.deg2rad(0.)     # latitude of launch site; [rad]
+LAUNCH_LON = np.deg2rad(0.)     # longitude of launch site; [rad]
 
 
 
@@ -43,15 +43,20 @@ launch_lon = np.deg2rad(0.)     # longitude of launch site; [rad]
 # Single Run specific parameters
 # ===================================================
 
-SS_throttle = 0.35028862953186024     # Second Stage throttle 
+SS_THROTTLE = 0.35028862953186024     # Second Stage throttle 
 
-initial_kick_angle = np.deg2rad(-12.519898194074626)   # Initial kick angle [rad]
+INITIAL_KICK_ANGLE = np.deg2rad(-12.519898194074626)   # Initial kick angle [rad]
 
 
 # ===================================================
 # Direct Orbit Injection No Coast specific parameters
 # ===================================================
 
+
+
+# ===================================================
+# Orbit Injection With Coasting specific parameters
+# ===================================================
 
 
 

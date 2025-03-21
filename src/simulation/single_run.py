@@ -14,8 +14,8 @@ def plot(time, data, initial_kick_angle):
     
     print("\nSemimajor axis: ", a, "m")
     print("Eccentricity: ", e)
-    print("Apoapsis altitude: ", (r_apo - c.r_earth)/1000, "km")
-    print("Periapsis altitude: ", (r_peri - c.r_earth)/1000, "km")
+    print("Apoapsis altitude: ", (r_apo - c.R_EARTH)/1000, "km")
+    print("Periapsis altitude: ", (r_peri - c.R_EARTH)/1000, "km")
 
     #===================================================
     # Plot and analyze results
@@ -28,6 +28,6 @@ def plot(time, data, initial_kick_angle):
     
 def execute():
     
-    time, data = rocket.run(init.SS_throttle, init.initial_kick_angle)
-    plot(time, data, init.initial_kick_angle)
+    time, data = rocket.run(init.SS_THROTTLE, init.INITIAL_KICK_ANGLE)
+    plot(time, data, init.INITIAL_KICK_ANGLE)
     
