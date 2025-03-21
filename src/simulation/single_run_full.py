@@ -1,5 +1,5 @@
 """ ===============================================
-            SINGLE RUN SIMULATION 
+            SINGLE RUN FULL SIMULATION 
 =============================================== """
 
 import init
@@ -27,7 +27,6 @@ def plot(time, data, initial_kick_angle):
 
     
 def execute():
-    
-    time, data = rocket.run(init.SS_throttle, init.initial_kick_angle)
+    time, data = rocket.run_full(init.SS_throttle, init.initial_kick_angle)
     plot(time, data, init.initial_kick_angle)
     

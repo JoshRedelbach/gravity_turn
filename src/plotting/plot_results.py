@@ -35,6 +35,11 @@ def single_run(time_steps, data, initial_kick_angle):
     # -------------- Prepare data --------------
     h = (data[1] - c.r_earth) / 1000.       # altitude h; [km]
     s = data[0] / 1000.                     # downtrack s; [km]
+    
+    # Compute cartesian coordinates
+    x, y = r.cartesian_coordinates(h, s)
+    x = x/1000
+    y = y/1000
 
     q = []          # dynamic pressure; [Pa]
     for i in range(len(time_steps)):
@@ -62,7 +67,7 @@ def single_run(time_steps, data, initial_kick_angle):
     fig1, axs1 = plt.subplots(2, 4, figsize=(15, 15))
 
     # Position plot: r over s
-    axs1[0, 0].plot(s, h)
+    axs1[0, 0].plot(x, y)
     axs1[0, 0].set_xlabel('downtrack s [km]')
     axs1[0, 0].set_ylabel('altitude h [km]')
     axs1[0, 0].set_title('Trajectory of Rocket')
@@ -118,4 +123,55 @@ def single_run(time_steps, data, initial_kick_angle):
     axs1[1, 3].grid()
 
     plt.tight_layout()
+    plt.show()
+    
+    
+    
+def plot_trajectory_xy(data):
+    """
+    Plots the rocket trajectory in x-y coordinates with Earth shown as a blue disk.
+    
+    Inputs:
+        - data: array of data points with the following structure:
+            * data[0]: downtrack s; [m]
+            * data[1]: current radius r from Earth's center; [m]
+    """
+
+    # -------------- Prepare data --------------
+    h = (data[1] - c.r_earth)       # altitude h; [m]
+    s = data[0]                     # downtrack s; [m]
+    
+    # Convert to cartesian coordinates
+    x, y = r.cartesian_coordinates(h, s)
+    x = x/1000.
+    y = y/1000.
+
+    # Create Earth representation (circular disk)
+    earth_radius_km = c.r_earth / 1000.0
+    earth = plt.Circle((0, 0), earth_radius_km, color='blue', zorder=1)
+
+    # Plot setup
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.set_facecolor("black")
+
+    # Plot trajectory
+    ax.plot(x, y, color="white", linewidth=1, label="Rocket Trajectory")
+    
+    # Show Earth
+    ax.add_patch(earth)
+
+    # Labels and aesthetics
+    ax.set_xlabel("Downtrack Distance (km)", color="white")
+    ax.set_ylabel("Altitude (km)", color="white")
+    ax.set_title("Rocket Trajectory", color="white")
+    ax.tick_params(colors='white')
+    ax.grid(color='gray', linestyle='--', linewidth=0.5)
+    ax.legend()
+
+    # Set limits to make sure Earth is fully visible
+    ax.set_xlim(min(x) - 1200, max(x) + 1200)  # Adjust margins around trajectory
+    ax.set_ylim(min(y) - 1200, max(y) + 1200)
+    ax.set_aspect('equal')  # Keep aspect ratio realistic
+
+    plt.savefig("rocket_trajectory.jpg", dpi=800, bbox_inches="tight", pad_inches=0)
     plt.show()
