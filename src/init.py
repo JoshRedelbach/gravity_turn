@@ -8,10 +8,11 @@ import numpy as np
 LV = 'MK1'                      # Launch Vehicle selected
 
 # -------------- Select Simulation Type ----------------
-SYM_TYPE = 2
+SYM_TYPE = 1
 """
     1 -> Single Run
-    2 -> Direct Orbit Injection No Coast
+    2 -> Single Run Full
+    3 -> Direct Orbit Injection No Coast
 """
 
 # ===================================================
@@ -35,9 +36,9 @@ alt_desired = 300e3             # altitude of desired orbit; [m]
 # Single Run specific parameters
 # ===================================================
 
-SS_throttle = 0.35029025077819814       # Second Stage throttle 
+SS_throttle = 0.35028862953186024     # Second Stage throttle 
 
-initial_kick_angle = np.deg2rad(-12.519912475347514) # Initial kick angle [rad]
+initial_kick_angle = np.deg2rad(-12.519898194074626)   # Initial kick angle [rad]
 
 
 # ===================================================
