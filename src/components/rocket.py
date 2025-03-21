@@ -18,7 +18,7 @@ par_roc = select_rocket(init.LV)  # Replace 'MK1' with the name of your desired 
 # Interrupt functions for simulation
 #===================================================
 
-def interrupt_radius_check(t, y, SS_THROTTLE, INITIAL_KICK_ANGLE):
+def interrupt_radius_check(t, y, ss_throttle, initial_kick_angle):
     """
     Returns zero, if the current radius exceeds the radius of the desired.
     
@@ -34,7 +34,7 @@ def interrupt_radius_check(t, y, SS_THROTTLE, INITIAL_KICK_ANGLE):
     return 1
 
 
-def interrupt_stage_separation(t, y, SS_THROTTLE, INITIAL_KICK_ANGLE):
+def interrupt_stage_separation(t, y, ss_throttle, initial_kick_angle):
     """
     Returns zero, if the stage separation was performed successfully (everything that need to be done until the M_STRUCTURE_1 needs to be separated.)
     
@@ -51,7 +51,7 @@ def interrupt_stage_separation(t, y, SS_THROTTLE, INITIAL_KICK_ANGLE):
     return 1
 
 
-# def interrupt_orbit_reached(t, y, SS_THROTTLE, INITIAL_KICK_ANGLE):
+# def interrupt_orbit_reached(t, y, ss_throttle, initial_kick_angle):
 #     """
 #     Returns zero, if the desired orbit is reached successfully meaning that current velocity norm, radius and flight path angle fit the requirements (within a certain margin).
     
@@ -74,7 +74,7 @@ def interrupt_stage_separation(t, y, SS_THROTTLE, INITIAL_KICK_ANGLE):
 #     return 1
 
 
-def interrupt_stage_2_burnt(t, y, SS_THROTTLE, INITIAL_KICK_ANGLE):
+def interrupt_stage_2_burnt(t, y, ss_throttle, initial_kick_angle):
     """
     Returns zero, if the second stage is fully burnt.
     
@@ -89,7 +89,7 @@ def interrupt_stage_2_burnt(t, y, SS_THROTTLE, INITIAL_KICK_ANGLE):
     return 1
 
 
-def interrupt_ground_collision(t, y, SS_THROTTLE, INITIAL_KICK_ANGLE):
+def interrupt_ground_collision(t, y, ss_throttle, initial_kick_angle):
     """
     Returns zero, if the current radius is below radius of earth
     
@@ -104,7 +104,7 @@ def interrupt_ground_collision(t, y, SS_THROTTLE, INITIAL_KICK_ANGLE):
     return 1
 
 
-def interrupt_velocity_exceeded(t, y, SS_THROTTLE, INITIAL_KICK_ANGLE):
+def interrupt_velocity_exceeded(t, y, ss_throttle, initial_kick_angle):
     """
     Returns zero, if the current velocity exceeds the velocity of the desired orbit.
     
@@ -206,7 +206,7 @@ def get_orbital_elements(r, v_inertial, gamma_inertial, mu = c.MU_EARTH):
     
 
 
-def thrust_Isp(SS_THROTTLE):
+def thrust_Isp(ss_throttle):
     """
     Returns the current thrust and Isp.
     
@@ -229,7 +229,7 @@ def thrust_Isp(SS_THROTTLE):
         F_T = 0
         Isp = par_roc.ISP_2
     elif main_engine_cutoff and second_engine_ignition:
-        F_T = par_roc.F_THRUST_2 * SS_THROTTLE
+        F_T = par_roc.F_THRUST_2 * ss_throttle
         Isp = par_roc.ISP_2
     else:
         print("Warning: Both first stage and second stage engines are running at the same time.")
@@ -238,7 +238,7 @@ def thrust_Isp(SS_THROTTLE):
 
 
 
-def pitch_programm_linear(t, INITIAL_KICK_ANGLE):
+def pitch_programm_linear(t, initial_kick_angle):
     """
     Returns the angle of attack for the initial kick.
     Increases the angle of attack to a certain value and decreases it afterwards in a linear way.
@@ -264,11 +264,11 @@ def pitch_programm_linear(t, INITIAL_KICK_ANGLE):
         if t < (time_kick_start + time_raise):
             # define rate of angle change
             angle_rate = (t - time_kick_start) / (time_raise)
-            return INITIAL_KICK_ANGLE * angle_rate
+            return initial_kick_angle * angle_rate
         else:
             # define rate of angle change
             angle_rate = (t - (time_kick_start + time_raise)) / (time_raise)
-            return INITIAL_KICK_ANGLE * (1 - angle_rate)
+            return initial_kick_angle * (1 - angle_rate)
         
 
 def apogee_check(r, v, gamma):
@@ -301,7 +301,7 @@ def apogee_check(r, v, gamma):
 
 
 
-def rocket_dynamics(t, state, SS_THROTTLE, INITIAL_KICK_ANGLE):
+def rocket_dynamics(t, state, ss_throttle, initial_kick_angle):
     """
     Simulates the dynamics of the rocket. This function will be integrated by the scipy.solve_ivp function
     
@@ -336,11 +336,11 @@ def rocket_dynamics(t, state, SS_THROTTLE, INITIAL_KICK_ANGLE):
         event_second_engine_ignition(t)
     
     # --- Get current thrust, Isp ---
-    F_T, Isp = thrust_Isp(SS_THROTTLE)
+    F_T, Isp = thrust_Isp(ss_throttle)
 
     # --- Get current angle of attack ---
     if alt > init.ALT_INITIAL_KICK and (not kick_performed):
-        alpha = pitch_programm_linear(t, INITIAL_KICK_ANGLE)
+        alpha = pitch_programm_linear(t, initial_kick_angle)
     else:
         alpha = 0.
 
@@ -490,7 +490,7 @@ def diff_eom_advanced(s, r, v, gamma, m, lat, lon, ceta, F_L, F_D, F_T, a_grav, 
 
 
 
-def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, stage_2_flag, SS_THROTTLE, INITIAL_KICK_ANGLE):
+def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, stage_2_flag, ss_throttle, initial_kick_angle):
     """
     Simulates the trajectory of the rocket until a given time stamps or until a certain interrupt function is called.
 
@@ -518,13 +518,13 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, stage_2
         
     #print(main_engine_cutoff)
     
-    return solve_ivp(rocket_dynamics, y0=state_init, t_span=t_span, t_eval=t_eval, max_step=1, events=interrupt_list, atol=1e-8, args=(SS_THROTTLE, INITIAL_KICK_ANGLE))
+    return solve_ivp(rocket_dynamics, y0=state_init, t_span=t_span, t_eval=t_eval, max_step=1, events=interrupt_list, atol=1e-8, args=(ss_throttle, initial_kick_angle))
 
 
 
 # TRY TO PUT THE RUN FUNCTIONS IN THE CORRESPONDING SIM FILES <------------------------------------------------ !!!
 
-def run(SS_THROTTLE, INITIAL_KICK_ANGLE):
+def run(ss_throttle, initial_kick_angle):
     
     global time_kick_start, kick_performed, time_raise, main_engine_cutoff, second_engine_ignition, stage_2_burnt, time_main_engine_cutoff, second_stage_cutoff
     
@@ -559,7 +559,7 @@ def run(SS_THROTTLE, INITIAL_KICK_ANGLE):
     time_1 = 500.   #<------TODO
 
     # Call simulation for stage 1
-    sol_1 = simulate_trajectory(0, time_1, initial_state_1, True, False, SS_THROTTLE, INITIAL_KICK_ANGLE)
+    sol_1 = simulate_trajectory(0, time_1, initial_state_1, True, False, ss_throttle, initial_kick_angle)
 
     
     #===================================================
@@ -578,7 +578,7 @@ def run(SS_THROTTLE, INITIAL_KICK_ANGLE):
     
     # Call simulation for stage 1
     #print("Second Simulation started!")
-    sol_2 = simulate_trajectory(init_time_2, time_2, initial_state_2, False, True, SS_THROTTLE, INITIAL_KICK_ANGLE)
+    sol_2 = simulate_trajectory(init_time_2, time_2, initial_state_2, False, True, ss_throttle, initial_kick_angle)
     
     data = np.concatenate((sol_1.y, sol_2.y), axis=1)
     time_steps_simulation = np.concatenate((sol_1.t, sol_2.t))
@@ -586,7 +586,7 @@ def run(SS_THROTTLE, INITIAL_KICK_ANGLE):
     return time_steps_simulation, data
 
 
-def run_full(SS_THROTTLE, INITIAL_KICK_ANGLE):
+def run_full(ss_throttle, initial_kick_angle):
     
     global time_kick_start, kick_performed, time_raise, main_engine_cutoff, second_engine_ignition, stage_2_burnt, time_main_engine_cutoff, second_stage_cutoff
     
@@ -621,7 +621,7 @@ def run_full(SS_THROTTLE, INITIAL_KICK_ANGLE):
     time_1 = 500.   #<------TODO
 
     # Call simulation for stage 1
-    sol_1 = simulate_trajectory(0, time_1, initial_state_1, True, False, SS_THROTTLE, INITIAL_KICK_ANGLE)
+    sol_1 = simulate_trajectory(0, time_1, initial_state_1, True, False, ss_throttle, initial_kick_angle)
 
     
     #===================================================
@@ -640,7 +640,7 @@ def run_full(SS_THROTTLE, INITIAL_KICK_ANGLE):
     
     # Call simulation for stage 1
     print("Second Simulation started!")
-    sol_2 = simulate_trajectory(init_time_2, time_2, initial_state_2, False, True, SS_THROTTLE, INITIAL_KICK_ANGLE)
+    sol_2 = simulate_trajectory(init_time_2, time_2, initial_state_2, False, True, ss_throttle, initial_kick_angle)
     
     # Cutoff second stage engine
     second_stage_cutoff = True
@@ -658,7 +658,7 @@ def run_full(SS_THROTTLE, INITIAL_KICK_ANGLE):
     
     # Call simulation
     print("Third Simulation started!")
-    sol_3 = simulate_trajectory(init_time_3, time_3, initial_state_3, False, False, SS_THROTTLE, INITIAL_KICK_ANGLE)
+    sol_3 = simulate_trajectory(init_time_3, time_3, initial_state_3, False, False, ss_throttle, initial_kick_angle)
     
     data = np.concatenate((sol_1.y, sol_2.y, sol_3.y), axis=1)
     time_steps_simulation = np.concatenate((sol_1.t, sol_2.t, sol_3.t))
