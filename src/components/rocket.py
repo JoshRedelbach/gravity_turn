@@ -18,7 +18,7 @@ par_roc = select_rocket(init.LV)  # Replace 'MK1' with the name of your desired 
 # Interrupt functions for simulation
 #===================================================
 
-def interrupt_radius_check(t, y, SS_throttle, initial_kick_angle):
+def interrupt_radius_check(t, y, SS_THROTTLE, INITIAL_KICK_ANGLE):
     """
     Returns zero, if the current radius exceeds the radius of the desired.
     
@@ -28,15 +28,15 @@ def interrupt_radius_check(t, y, SS_throttle, initial_kick_angle):
     """
     margin = 50e3
     r = y[1]
-    if r > (init.alt_desired + c.r_earth + margin):
+    if r > (init.ALT_DESIRED + c.R_EARTH + margin):
         #print("Interrupt Radius Check happened at time ", t)
         return 0
     return 1
 
 
-def interrupt_stage_separation(t, y, SS_throttle, initial_kick_angle):
+def interrupt_stage_separation(t, y, SS_THROTTLE, INITIAL_KICK_ANGLE):
     """
-    Returns zero, if the stage separation was performed successfully (everything that need to be done until the m_structure_1 needs to be separated.)
+    Returns zero, if the stage separation was performed successfully (everything that need to be done until the M_STRUCTURE_1 needs to be separated.)
     
     Input:
         - t: current time since launch; [s]
@@ -45,13 +45,13 @@ def interrupt_stage_separation(t, y, SS_throttle, initial_kick_angle):
     global time_main_engine_cutoff, main_engine_cutoff
 
     if main_engine_cutoff:
-        if t >= (time_main_engine_cutoff + par_roc.delta_time_stage_separation):
+        if t >= (time_main_engine_cutoff + par_roc.DELAT_TIME_STAGE_SEPARATION):
             #print("Interrupt Stage Separation happened at time ", t)
             return 0
     return 1
 
 
-# def interrupt_orbit_reached(t, y, SS_throttle, initial_kick_angle):
+# def interrupt_orbit_reached(t, y, SS_THROTTLE, INITIAL_KICK_ANGLE):
 #     """
 #     Returns zero, if the desired orbit is reached successfully meaning that current velocity norm, radius and flight path angle fit the requirements (within a certain margin).
     
@@ -61,8 +61,8 @@ def interrupt_stage_separation(t, y, SS_throttle, initial_kick_angle):
 #     """
 #     _, r, v, gamma, _ = y
     
-#     r_desired = c.r_earth + init.alt_desired
-#     v_desired = np.sqrt(c.mu_earth / r_desired)
+#     r_desired = c.R_EARTH + init.ALT_DESIRED
+#     v_desired = np.sqrt(c.MU_EARTH / r_desired)
 
 #     epsilon_r = 100                        # margin for the orbit radius check
 #     epsilon_v = 1                          # margin for the orbit velocity check
@@ -74,7 +74,7 @@ def interrupt_stage_separation(t, y, SS_throttle, initial_kick_angle):
 #     return 1
 
 
-def interrupt_stage_2_burnt(t, y, SS_throttle, initial_kick_angle):
+def interrupt_stage_2_burnt(t, y, SS_THROTTLE, INITIAL_KICK_ANGLE):
     """
     Returns zero, if the second stage is fully burnt.
     
@@ -83,13 +83,13 @@ def interrupt_stage_2_burnt(t, y, SS_throttle, initial_kick_angle):
         - y: current state vector
     """
     m = y[4]
-    if m <= (par_roc.m_payload + par_roc.m_structure_2):
+    if m <= (par_roc.M_PAYLOAD + par_roc.M_STRUCTURE_2):
         #print("Interrupt Stage 2 Burnt happened at time ", t)
         return 0
     return 1
 
 
-def interrupt_ground_collision(t, y, SS_throttle, initial_kick_angle):
+def interrupt_ground_collision(t, y, SS_THROTTLE, INITIAL_KICK_ANGLE):
     """
     Returns zero, if the current radius is below radius of earth
     
@@ -98,13 +98,13 @@ def interrupt_ground_collision(t, y, SS_throttle, initial_kick_angle):
         - y: current state vector
     """
     r = y[1]
-    if r < c.r_earth - 1e3:
+    if r < c.R_EARTH - 1e3:
         #print("Interrupt Earth Collision happened at time ", t)
         return 0
     return 1
 
 
-def interrupt_velocity_exceeded(t, y, SS_throttle, initial_kick_angle):
+def interrupt_velocity_exceeded(t, y, SS_THROTTLE, INITIAL_KICK_ANGLE):
     """
     Returns zero, if the current velocity exceeds the velocity of the desired orbit.
     
@@ -113,8 +113,8 @@ def interrupt_velocity_exceeded(t, y, SS_throttle, initial_kick_angle):
         - y: current state vector
     """
     v = y[2]
-    r_desired = c.r_earth + init.alt_desired
-    v_desired = np.sqrt(c.mu_earth / r_desired)
+    r_desired = c.R_EARTH + init.ALT_DESIRED
+    v_desired = np.sqrt(c.MU_EARTH / r_desired)
     margin = 0            # [m/s]
     # if v > (v_desired + margin):
     #     #print("Interrupt Desired Velocity Exceeded happened at time ", t, "\n")
@@ -140,7 +140,7 @@ def event_main_engine_cutoff(t, y):
     if main_engine_cutoff == True:
         return
     
-    first_stage_leftover_propellant = y[4] - (par_roc.m_structure_1 + par_roc.m_structure_2 + par_roc.m_prop_2 + par_roc.m_payload)
+    first_stage_leftover_propellant = y[4] - (par_roc.M_STRUCTURE_1 + par_roc.M_STRUCTURE_2 + par_roc.M_PROP_2 + par_roc.M_PAYLOAD)
     
     if first_stage_leftover_propellant <= 0 and main_engine_cutoff == False:
         main_engine_cutoff = True
@@ -158,7 +158,7 @@ def event_second_engine_ignition(t):
     
     global time_main_engine_cutoff, second_engine_ignition
     
-    if t >= (par_roc.delta_time_second_engine_ignition + time_main_engine_cutoff):
+    if t >= (par_roc.DELAT_TIME_SECOND_ENGINE_IGNITION + time_main_engine_cutoff):
         second_engine_ignition = True
         
     return
@@ -173,13 +173,13 @@ def cartesian_coordinates(h, s):
     """
     """
     
-    theta = s / c.r_earth
-    y = (h + c.r_earth) * np.cos(theta)
-    x = (h + c.r_earth) * np.sin(theta)
+    theta = s / c.R_EARTH
+    y = (h + c.R_EARTH) * np.cos(theta)
+    x = (h + c.R_EARTH) * np.sin(theta)
     
     return x, y
 
-def get_orbital_elements(r, v_inertial, gamma_inertial, mu = c.mu_earth):
+def get_orbital_elements(r, v_inertial, gamma_inertial, mu = c.MU_EARTH):
     """
     Computes the orbital parameters given the input state.
     
@@ -206,7 +206,7 @@ def get_orbital_elements(r, v_inertial, gamma_inertial, mu = c.mu_earth):
     
 
 
-def thrust_Isp(SS_throttle):
+def thrust_Isp(SS_THROTTLE):
     """
     Returns the current thrust and Isp.
     
@@ -220,17 +220,17 @@ def thrust_Isp(SS_throttle):
     global main_engine_cutoff, second_engine_ignition, second_stage_cutoff
     
     if not main_engine_cutoff:
-        F_T = par_roc.F_thrust_1
-        Isp = par_roc.Isp_1
+        F_T = par_roc.F_THRUST_1
+        Isp = par_roc.ISP_1
     elif main_engine_cutoff and not second_engine_ignition:
         F_T = 0
-        Isp = par_roc.Isp_1
+        Isp = par_roc.ISP_1
     elif main_engine_cutoff and second_stage_cutoff:
         F_T = 0
-        Isp = par_roc.Isp_2
+        Isp = par_roc.ISP_2
     elif main_engine_cutoff and second_engine_ignition:
-        F_T = par_roc.F_thrust_2 * SS_throttle
-        Isp = par_roc.Isp_2
+        F_T = par_roc.F_THRUST_2 * SS_THROTTLE
+        Isp = par_roc.ISP_2
     else:
         print("Warning: Both first stage and second stage engines are running at the same time.")
         
@@ -238,7 +238,7 @@ def thrust_Isp(SS_throttle):
 
 
 
-def pitch_programm_linear(t, initial_kick_angle):
+def pitch_programm_linear(t, INITIAL_KICK_ANGLE):
     """
     Returns the angle of attack for the initial kick.
     Increases the angle of attack to a certain value and decreases it afterwards in a linear way.
@@ -254,7 +254,7 @@ def pitch_programm_linear(t, initial_kick_angle):
         #print("\nInitial kick started at t = ", t)
         return 0.0
     
-    elif t > (time_kick_start + init.duration_initial_kick):     # check if kick has ended
+    elif t > (time_kick_start + init.DURATION_INITIAL_KICK):     # check if kick has ended
         kick_performed = True
         #print("\nInitial kick ended at t = ", t)
         return 0.0
@@ -264,11 +264,11 @@ def pitch_programm_linear(t, initial_kick_angle):
         if t < (time_kick_start + time_raise):
             # define rate of angle change
             angle_rate = (t - time_kick_start) / (time_raise)
-            return initial_kick_angle * angle_rate
+            return INITIAL_KICK_ANGLE * angle_rate
         else:
             # define rate of angle change
             angle_rate = (t - (time_kick_start + time_raise)) / (time_raise)
-            return initial_kick_angle * (1 - angle_rate)
+            return INITIAL_KICK_ANGLE * (1 - angle_rate)
         
 
 def apogee_check(r, v, gamma):
@@ -291,7 +291,7 @@ def apogee_check(r, v, gamma):
     # Check if apogee is within a certain margin close to the desired altitude
     margin = 20     # meters
     # check if apogee is within a certain margin close to desired altitude 
-    if r_apo < (init.alt_desired + c.r_earth + margin) and r_apo > (init.alt_desired + c.r_earth - margin):
+    if r_apo < (init.ALT_DESIRED + c.R_EARTH + margin) and r_apo > (init.ALT_DESIRED + c.R_EARTH - margin):
         # if that is the case: compute required delta_v to circularize the orbit
         return r_peri, r_apo, solvers.circularize_delta_v(r_apo, v)
     else:
@@ -301,7 +301,7 @@ def apogee_check(r, v, gamma):
 
 
 
-def rocket_dynamics(t, state, SS_throttle, initial_kick_angle):
+def rocket_dynamics(t, state, SS_THROTTLE, INITIAL_KICK_ANGLE):
     """
     Simulates the dynamics of the rocket. This function will be integrated by the scipy.solve_ivp function
     
@@ -328,7 +328,7 @@ def rocket_dynamics(t, state, SS_throttle, initial_kick_angle):
     s, r, v, gamma, m, lat, lon, ceta = state
 
     # Compute altitude above Earth's surface
-    alt = r - c.r_earth                # altitude of the rocket; [m]
+    alt = r - c.R_EARTH                # altitude of the rocket; [m]
 
     # Check main engine state and second engine state
     event_main_engine_cutoff(t, state)
@@ -336,20 +336,20 @@ def rocket_dynamics(t, state, SS_throttle, initial_kick_angle):
         event_second_engine_ignition(t)
     
     # --- Get current thrust, Isp ---
-    F_T, Isp = thrust_Isp(SS_throttle)
+    F_T, Isp = thrust_Isp(SS_THROTTLE)
 
     # --- Get current angle of attack ---
-    if alt > init.alt_initial_kick and (not kick_performed):
-        alpha = pitch_programm_linear(t, initial_kick_angle)
+    if alt > init.ALT_INITIAL_KICK and (not kick_performed):
+        alpha = pitch_programm_linear(t, INITIAL_KICK_ANGLE)
     else:
         alpha = 0.
 
     # --- Determine current accelerations and forces ---
     a_grav = env.accel_grav(r)                                  # gravity at the altitude of the rocket in negative radial direction
-    F_D = env.drag_force(v, alt, par_roc.c_D, par_roc.A)        # drag force norm acting in negative velocity direction
+    F_D = env.drag_force(v, alt, par_roc.C_D, par_roc.A)        # drag force norm acting in negative velocity direction
     
     # NOTE: not sure, if we have to include lift forces or not
-    # F_L = env.lift_force(v, alt, par_roc.c_L, par_roc.A)      # lift force norm acting in vertical to velocity direction
+    # F_L = env.lift_force(v, alt, par_roc.C_L, par_roc.A)      # lift force norm acting in vertical to velocity direction
     F_L = 0.0
 
     state_diff = diff_eom_base(s, r, v, gamma, m, F_L, F_D, F_T, a_grav, alpha, Isp)
@@ -386,7 +386,7 @@ def diff_eom_base(s, r, v, gamma, m, F_L, F_D, F_T, a_grav, alpha, Isp):
     s_alpha = np.sin(alpha)
 
     # --- Compute the derivatives ---
-    dsdt = (c.r_earth / r) * v * c_gamma
+    dsdt = (c.R_EARTH / r) * v * c_gamma
 
     # Reference: [1] Equations 6.3.8
     drdt = v * np.sin(gamma)
@@ -403,17 +403,17 @@ def diff_eom_base(s, r, v, gamma, m, F_L, F_D, F_T, a_grav, alpha, Isp):
         dgammadt = (1./v) * ( (F_T / m) * s_alpha + F_L / m  - (a_grav - (v**2 / r)) * c_gamma )
     
     # Derivative of mass
-    dmdt = - F_T / (Isp * c.g0)
+    dmdt = - F_T / (Isp * c.G0)
 
     return [dsdt, drdt, dvdt, dgammadt, dmdt, 0, 0, 0]
 
 
-""" 
-NOTE: 
-Be careful with the advanced equations of motion. They are not fully implemented yet!
-Division by zero could occur!
-"""
 def diff_eom_advanced(s, r, v, gamma, m, lat, lon, ceta, F_L, F_D, F_T, a_grav, alpha, Isp):
+    """ 
+    NOTE: NOT TESTED YET!
+    Be careful with the advanced equations of motion. They are not fully implemented yet!
+    Division by zero could occur!
+    """
     """
     Differential equations of motion for the rocket WITH earth rotation. 
     
@@ -445,13 +445,13 @@ def diff_eom_advanced(s, r, v, gamma, m, lat, lon, ceta, F_L, F_D, F_T, a_grav, 
     s_alpha = np.sin(alpha)
 
     # --- Compute the derivatives ---
-    dsdt = (c.r_earth / r) * v * c_gamma
+    dsdt = (c.R_EARTH / r) * v * c_gamma
 
     # Reference: [1] Equations 6.3.8
     drdt = v * np.sin(gamma)
 
     # dvdt
-    dvdt = (F_T / m) * c_alpha - (F_D / m) - a_grav * s_gamma + c.omega_earth**2 * r * np.cos(lat) * (np.cos(lat) * np.sin(gamma) - np.sin(lat) * np.cos(gamma) * np.sin(ceta))
+    dvdt = (F_T / m) * c_alpha - (F_D / m) - a_grav * s_gamma + c.OMEGA_EARTH**2 * r * np.cos(lat) * (np.cos(lat) * np.sin(gamma) - np.sin(lat) * np.cos(gamma) * np.sin(ceta))
 
     # Catch the case of zero velocity to avoid division by zero
     epsilon = 1e-6
@@ -463,18 +463,18 @@ def diff_eom_advanced(s, r, v, gamma, m, lat, lon, ceta, F_L, F_D, F_T, a_grav, 
         term_1 = (F_T / m) * s_alpha
 
         # 2nd term
-        term_2 = (v**2 * r - c.mu_earth) / (r**2 * v) * c_gamma
+        term_2 = (v**2 * r - c.MU_EARTH) / (r**2 * v) * c_gamma
 
         # 3rd term
-        term_3 = 2 * c.omega_earth * np.cos(lat) * np.cos(ceta)
+        term_3 = 2 * c.OMEGA_EARTH * np.cos(lat) * np.cos(ceta)
 
         # 4th term
-        term_4 = ((c.omega_earth**2 * r) / v) * np.cos(lat) * (np.cos(lat) * np.cos(gamma) + np.sin(lat) * np.sin(gamma) * np.sin(ceta))
+        term_4 = ((c.OMEGA_EARTH**2 * r) / v) * np.cos(lat) * (np.cos(lat) * np.cos(gamma) + np.sin(lat) * np.sin(gamma) * np.sin(ceta))
 
         dgammadt = term_1 + term_2 + term_3 + term_4
     
     # Derivative of mass
-    dmdt = - F_T / (Isp * c.g0)
+    dmdt = - F_T / (Isp * c.G0)
 
     # Derivative of latitude
     dlatdt = (v * np.cos(gamma) * np.sin(ceta)) / r
@@ -484,13 +484,13 @@ def diff_eom_advanced(s, r, v, gamma, m, lat, lon, ceta, F_L, F_D, F_T, a_grav, 
 
     # Derivative of heading angle ceta
     # NOTE: how do we handle the division by zero because of division by cos(gamma) and the division by zero because of v = 0?
-    dcetadt = - (v /r) * np.tan(lat) * np.cos(gamma) * np.cos(ceta) + 2 * c.omega_earth * np.cos(lat) * np.tan(gamma) * np.sin(ceta) - ((c.omega_earth**2 * r) / (v * np.cos(gamma))) * np.sin(lat) * np.cos(lat) * np.cos(ceta) - 2 * c.omega_earth * np.sin(lat) + 0.
+    dcetadt = - (v /r) * np.tan(lat) * np.cos(gamma) * np.cos(ceta) + 2 * c.OMEGA_EARTH * np.cos(lat) * np.tan(gamma) * np.sin(ceta) - ((c.OMEGA_EARTH**2 * r) / (v * np.cos(gamma))) * np.sin(lat) * np.cos(lat) * np.cos(ceta) - 2 * c.OMEGA_EARTH * np.sin(lat) + 0.
 
     return [dsdt, drdt, dvdt, dgammadt, dmdt, dlatdt, dlondt, dcetadt]
 
 
 
-def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, stage_2_flag, SS_throttle, initial_kick_angle):
+def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, stage_2_flag, SS_THROTTLE, INITIAL_KICK_ANGLE):
     """
     Simulates the trajectory of the rocket until a given time stamps or until a certain interrupt function is called.
 
@@ -503,7 +503,7 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, stage_2
     """
 
     t_span = (init_time, init_time + time_stamp + 1)
-    t_eval = np.arange(init_time, init_time + time_stamp + init.time_step, init.time_step)
+    t_eval = np.arange(init_time, init_time + time_stamp + init.TIME_STEP, init.TIME_STEP)
 
     if stage_1_flag:
         interrupt_list = [interrupt_radius_check, interrupt_stage_separation, interrupt_ground_collision, interrupt_velocity_exceeded]
@@ -518,12 +518,13 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, stage_2
         
     #print(main_engine_cutoff)
     
-    return solve_ivp(rocket_dynamics, y0=state_init, t_span=t_span, t_eval=t_eval, max_step=1, events=interrupt_list, atol=1e-8, args=(SS_throttle, initial_kick_angle))
+    return solve_ivp(rocket_dynamics, y0=state_init, t_span=t_span, t_eval=t_eval, max_step=1, events=interrupt_list, atol=1e-8, args=(SS_THROTTLE, INITIAL_KICK_ANGLE))
+
 
 
 # TRY TO PUT THE RUN FUNCTIONS IN THE CORRESPONDING SIM FILES <------------------------------------------------ !!!
 
-def run(SS_throttle, initial_kick_angle):
+def run(SS_THROTTLE, INITIAL_KICK_ANGLE):
     
     global time_kick_start, kick_performed, time_raise, main_engine_cutoff, second_engine_ignition, stage_2_burnt, time_main_engine_cutoff, second_stage_cutoff
     
@@ -532,7 +533,7 @@ def run(SS_throttle, initial_kick_angle):
     #===================================================
     time_kick_start = None                          # time when the initial kick starts
     kick_performed = False                          # flag to check if the initial kick has been performed
-    time_raise = init.duration_initial_kick / 2. # time to raise the angle of attack to the maximum value; [s]
+    time_raise = init.DURATION_INITIAL_KICK / 2. # time to raise the angle of attack to the maximum value; [s]
     main_engine_cutoff = False                      # flag to check if the first stage engine is cutoff
     second_engine_ignition = False                  # flag to check if the second stage engine is ignited
     stage_2_burnt = False                           # flag to check if the second stage is burnt
@@ -541,8 +542,8 @@ def run(SS_throttle, initial_kick_angle):
 
     # ---- Debugging ---- 
     # Print desired orbit
-    r_desired = c.r_earth + init.alt_desired
-    v_desired = np.sqrt(c.mu_earth / r_desired)
+    r_desired = c.R_EARTH + init.ALT_DESIRED
+    v_desired = np.sqrt(c.MU_EARTH / r_desired)
     #print(r_desired)
     #print(v_desired)
 
@@ -551,14 +552,14 @@ def run(SS_throttle, initial_kick_angle):
     #===================================================
 
     # Define initial state
-    initial_mass = par_roc.m_structure_1 + par_roc.m_prop_1 + par_roc.m_structure_2 + par_roc.m_prop_2 + par_roc.m_payload
-    initial_state_1 = [0., c.r_earth, 0., np.deg2rad(90.), initial_mass, 0, 0, 0]  # [s, r, v, gamma, m, lat, lon, ceta]
+    initial_mass = par_roc.M_STRUCTURE_1 + par_roc.M_PROP_1 + par_roc.M_STRUCTURE_2 + par_roc.M_PROP_2 + par_roc.M_PAYLOAD
+    initial_state_1 = [0., c.R_EARTH, 0., np.deg2rad(90.), initial_mass, 0, 0, 0]  # [s, r, v, gamma, m, lat, lon, ceta]
 
     # Define time of simulation 1
     time_1 = 500.   #<------TODO
 
     # Call simulation for stage 1
-    sol_1 = simulate_trajectory(0, time_1, initial_state_1, True, False, SS_throttle, initial_kick_angle)
+    sol_1 = simulate_trajectory(0, time_1, initial_state_1, True, False, SS_THROTTLE, INITIAL_KICK_ANGLE)
 
     
     #===================================================
@@ -569,7 +570,7 @@ def run(SS_throttle, initial_kick_angle):
     initial_state_2 = sol_1.y[:, -1]
 
     # Adjust mass -> perform stage separation
-    initial_state_2[4] = initial_state_2[4] - par_roc.m_structure_1
+    initial_state_2[4] = initial_state_2[4] - par_roc.M_STRUCTURE_1
     
     # Define time of simulation 2
     init_time_2 = sol_1.t[-1]
@@ -577,7 +578,7 @@ def run(SS_throttle, initial_kick_angle):
     
     # Call simulation for stage 1
     #print("Second Simulation started!")
-    sol_2 = simulate_trajectory(init_time_2, time_2, initial_state_2, False, True, SS_throttle, initial_kick_angle)
+    sol_2 = simulate_trajectory(init_time_2, time_2, initial_state_2, False, True, SS_THROTTLE, INITIAL_KICK_ANGLE)
     
     data = np.concatenate((sol_1.y, sol_2.y), axis=1)
     time_steps_simulation = np.concatenate((sol_1.t, sol_2.t))
@@ -585,7 +586,7 @@ def run(SS_throttle, initial_kick_angle):
     return time_steps_simulation, data
 
 
-def run_full(SS_throttle, initial_kick_angle):
+def run_full(SS_THROTTLE, INITIAL_KICK_ANGLE):
     
     global time_kick_start, kick_performed, time_raise, main_engine_cutoff, second_engine_ignition, stage_2_burnt, time_main_engine_cutoff, second_stage_cutoff
     
@@ -594,7 +595,7 @@ def run_full(SS_throttle, initial_kick_angle):
     #===================================================
     time_kick_start = None                          # time when the initial kick starts
     kick_performed = False                          # flag to check if the initial kick has been performed
-    time_raise = init.duration_initial_kick / 2. # time to raise the angle of attack to the maximum value; [s]
+    time_raise = init.DURATION_INITIAL_KICK / 2. # time to raise the angle of attack to the maximum value; [s]
     main_engine_cutoff = False                      # flag to check if the first stage engine is cutoff
     second_engine_ignition = False                  # flag to check if the second stage engine is ignited
     stage_2_burnt = False                           # flag to check if the second stage is burnt
@@ -603,8 +604,8 @@ def run_full(SS_throttle, initial_kick_angle):
 
     # ---- Debugging ---- 
     # Print desired orbit
-    r_desired = c.r_earth + init.alt_desired
-    v_desired = np.sqrt(c.mu_earth / r_desired)
+    r_desired = c.R_EARTH + init.ALT_DESIRED
+    v_desired = np.sqrt(c.MU_EARTH / r_desired)
     #print(r_desired)
     #print(v_desired)
 
@@ -613,14 +614,14 @@ def run_full(SS_throttle, initial_kick_angle):
     #===================================================
 
     # Define initial state
-    initial_mass = par_roc.m_structure_1 + par_roc.m_prop_1 + par_roc.m_structure_2 + par_roc.m_prop_2 + par_roc.m_payload
-    initial_state_1 = [0., c.r_earth, 0., np.deg2rad(90.), initial_mass, 0, 0, 0]
+    initial_mass = par_roc.M_STRUCTURE_1 + par_roc.M_PROP_1 + par_roc.M_STRUCTURE_2 + par_roc.M_PROP_2 + par_roc.M_PAYLOAD
+    initial_state_1 = [0., c.R_EARTH, 0., np.deg2rad(90.), initial_mass, 0, 0, 0]
 
     # Define time of simulation 1
     time_1 = 500.   #<------TODO
 
     # Call simulation for stage 1
-    sol_1 = simulate_trajectory(0, time_1, initial_state_1, True, False, SS_throttle, initial_kick_angle)
+    sol_1 = simulate_trajectory(0, time_1, initial_state_1, True, False, SS_THROTTLE, INITIAL_KICK_ANGLE)
 
     
     #===================================================
@@ -631,7 +632,7 @@ def run_full(SS_throttle, initial_kick_angle):
     initial_state_2 = sol_1.y[:, -1]
 
     # Adjust mass -> perform stage separation
-    initial_state_2[4] = initial_state_2[4] - par_roc.m_structure_1
+    initial_state_2[4] = initial_state_2[4] - par_roc.M_STRUCTURE_1
     
     # Define time of simulation 2
     init_time_2 = sol_1.t[-1]
@@ -639,7 +640,7 @@ def run_full(SS_throttle, initial_kick_angle):
     
     # Call simulation for stage 1
     print("Second Simulation started!")
-    sol_2 = simulate_trajectory(init_time_2, time_2, initial_state_2, False, True, SS_throttle, initial_kick_angle)
+    sol_2 = simulate_trajectory(init_time_2, time_2, initial_state_2, False, True, SS_THROTTLE, INITIAL_KICK_ANGLE)
     
     # Cutoff second stage engine
     second_stage_cutoff = True
@@ -657,7 +658,7 @@ def run_full(SS_throttle, initial_kick_angle):
     
     # Call simulation
     print("Third Simulation started!")
-    sol_3 = simulate_trajectory(init_time_3, time_3, initial_state_3, False, False, SS_throttle, initial_kick_angle)
+    sol_3 = simulate_trajectory(init_time_3, time_3, initial_state_3, False, False, SS_THROTTLE, INITIAL_KICK_ANGLE)
     
     data = np.concatenate((sol_1.y, sol_2.y, sol_3.y), axis=1)
     time_steps_simulation = np.concatenate((sol_1.t, sol_2.t, sol_3.t))

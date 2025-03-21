@@ -9,24 +9,24 @@ import components.constants as c
 import numpy as np
 
 
-def plot(time, data, initial_kick_angle):
+def plot(time, data, INITIAL_KICK_ANGLE):
     a, e, r_apo, r_peri = rocket.get_orbital_elements(data[1,-1], data[2,-1], data[3,-1])
     
     print("\nSemimajor axis: ", a, "m")
     print("Eccentricity: ", e)
-    print("Apoapsis altitude: ", (r_apo - c.r_earth)/1000, "km")
-    print("Periapsis altitude: ", (r_peri - c.r_earth)/1000, "km")
+    print("Apoapsis altitude: ", (r_apo - c.R_EARTH)/1000, "km")
+    print("Periapsis altitude: ", (r_peri - c.R_EARTH)/1000, "km")
 
     #===================================================
     # Plot and analyze results
     #===================================================
 
     # Plot results
-    plot_results.single_run(time, data, initial_kick_angle)
+    plot_results.single_run(time, data, INITIAL_KICK_ANGLE)
     plot_results.plot_trajectory_xy(data)
 
     
 def execute():
-    time, data = rocket.run_full(init.SS_throttle, init.initial_kick_angle)
-    plot(time, data, init.initial_kick_angle)
+    time, data = rocket.run_full(init.SS_THROTTLE, init.INITIAL_KICK_ANGLE)
+    plot(time, data, init.INITIAL_KICK_ANGLE)
     

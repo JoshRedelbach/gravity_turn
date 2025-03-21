@@ -25,27 +25,27 @@ def find_initial_kick_angle(throttle):
 def second_throttle_objective(throttle):
     print("----------------------------")
     print("Throttle: ", throttle)
-    initial_kick_angle = find_initial_kick_angle(throttle)
-    time, data = run(throttle, initial_kick_angle)
+    INITIAL_KICK_ANGLE = find_initial_kick_angle(throttle)
+    time, data = run(throttle, INITIAL_KICK_ANGLE)
     last_radius = data[1, -1]
     
     last_gamma = data[3,-1]
     # print("Initial conditions: ", data[:,0])
     # print("Final conditions", data[:,-1])
-    print("Kick angle", np.rad2deg(initial_kick_angle))
+    print("Kick angle", np.rad2deg(INITIAL_KICK_ANGLE))
     print("Last gamma: ", np.rad2deg(last_gamma))
     print("Throttle: ", throttle)
     a, e, r_apo, r_peri = rocket.get_orbital_elements(data[1, -1], data[2, -1], data[3, -1])
-    print("Perigee: ", r_peri - c.r_earth, "m")
-    print("Apogee: ", r_apo - c.r_earth, "m")
+    print("Perigee: ", r_peri - c.R_EARTH, "m")
+    print("Apogee: ", r_apo - c.R_EARTH, "m")
     print("Eccentricity: ", e)
-    print("Altitude: ", (last_radius - c.r_earth)/1000, "km")
-    r_desired = c.r_earth + par_sim.alt_desired
-    v_desired = np.sqrt(c.mu_earth / r_desired)
+    print("Altitude: ", (last_radius - c.R_EARTH)/1000, "km")
+    r_desired = c.R_EARTH + par_sim.ALT_DESIRED
+    v_desired = np.sqrt(c.MU_EARTH / r_desired)
     print("delta_Velocity: ", data[2, -1] - v_desired, "m/s")
-    print(last_radius - c.r_earth - par_sim.alt_desired)
+    print(last_radius - c.R_EARTH - par_sim.ALT_DESIRED)
     
-    return last_radius - c.r_earth - par_sim.alt_desired
+    return last_radius - c.R_EARTH - par_sim.ALT_DESIRED
 
 def find_throttle():
     return bisect(second_throttle_objective, 2, 0.3, xtol=1e-6, maxiter=500)
@@ -70,7 +70,7 @@ def circularize_delta_v(r, v):
         - delta_v: delta-v required to circularize the orbit; [m/s]
     """
     # Compute required velocity at circular orbit with radius r
-    v_circular = np.sqrt(c.mu_earth / r)
+    v_circular = np.sqrt(c.MU_EARTH / r)
 
     # Compute delta-v
     delta_v = v_circular - v
@@ -98,7 +98,7 @@ def hohman_transfer(v1, r1, r2):
     a_transfer = (r1 + r2) / 2
 
     # Compute required velocity of the spacecraft at r2
-    v2 = np.sqrt(c.mu_earth * (2 / r2 - 1 / a_transfer))
+    v2 = np.sqrt(c.MU_EARTH * (2 / r2 - 1 / a_transfer))
 
     # Compute delta-v required for the first burn
     delta_v1 = v2 - v1
