@@ -667,7 +667,7 @@ def run_full(ss_throttle, initial_kick_angle):
     
     # Define time of simulation 3
     init_time_3 = sol_2.t[-1]
-    time_3 = 1200.   #<------ TODO
+    time_3 = init.DURATION_AFTER_SS_CUTOFF
     
     # Call simulation
     print("Third Simulation started!")

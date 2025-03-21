@@ -8,7 +8,7 @@ import numpy as np
 LV = 'MK1'                      # Launch Vehicle selected
 
 # -------------- Select Simulation Type ----------------
-SYM_TYPE = 2
+SYM_TYPE = 1
 """
     1 -> Single Run
     2 -> Single Run Full
@@ -25,7 +25,7 @@ DURATION_INITIAL_KICK = 20.     # duration of gravity turn; [s]
 
 
 # -------------- Time Step --------------
-TIME_STEP = 0.0001                 # step size for integration; [s]
+TIME_STEP = 0.001                 # step size for integration; [s]
 
 
 # -------------- Desired Orbit --------------
@@ -47,6 +47,11 @@ SS_THROTTLE = 0.35028862953186024     # Second Stage throttle
 
 INITIAL_KICK_ANGLE = np.deg2rad(-12.519898194074626)   # Initial kick angle [rad]
 
+# ===================================================
+# Single Run  Full specific parameters
+# ===================================================
+
+DURATION_AFTER_SS_CUTOFF = 1000.  # duration after second stage cutoff; [s]
 
 # ===================================================
 # Direct Orbit Injection No Coast specific parameters
