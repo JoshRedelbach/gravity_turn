@@ -9,6 +9,7 @@ import plotting.plot_results as plot_results
 import numpy as np
 from scipy.integrate import solve_ivp
 from components.rocket_selector import select_rocket
+import solvers
 
 # Selected Launch Vehicle
 par_roc = select_rocket(init.LV)  # Replace 'MK1' with the name of your desired rocket module
@@ -194,6 +195,7 @@ def get_orbital_elements(r, v_inertial, gamma_inertial, mu = c.mu_earth):
     return a, e, r_apo, r_peri
     
 
+
 def thrust_Isp(SS_throttle):
     """
     Returns the current thrust and Isp.
@@ -254,6 +256,33 @@ def pitch_programm_linear(t, initial_kick_angle):
             # define rate of angle change
             angle_rate = (t - (time_kick_start + time_raise)) / (time_raise)
             return initial_kick_angle * (1 - angle_rate)
+        
+
+def apogee_check(r, v, gamma):
+    """
+    Checks if the current apogee is within a certain margin close to the desired altitude and gives the required delta_v to circularize if it is or high delta_v if not.
+
+    Input: 
+        - r: current radius; [m]
+        - v: current velocity norm; [m/s]
+        - gamma: current flight path angle; [rad]
+    
+    Output: 
+        radius_perigee, radius_apogee, delta_v_circularize
+    """
+    # Compute current orbital elements
+    a, e, r_apo, r_peri = get_orbital_elements(r, v, gamma)
+
+    # Check if apogee is within a certain margin close to the desired altitude
+    margin = 20     # meters
+    # check if apogee is within a certain margin close to desired altitude 
+    if r_apo < (init.alt_desired + c.r_earth + margin) and r_apo > (init.alt_desired + c.r_earth - margin):
+        # if that is the case: compute required delta_v to circularize the orbit
+        return r_peri, r_apo, solvers.circularize_delta_v(r_apo, v)
+    else:
+        # if that was not the case: return large value for delta_v
+        delta_v_unsuccessful = 999999.
+        return r_peri, r_apo, delta_v_unsuccessful
 
 
 
@@ -305,6 +334,32 @@ def rocket_dynamics(t, state, SS_throttle, initial_kick_angle):
     # F_L = env.lift_force(v, alt, par_roc.c_L, par_roc.A)      # lift force norm acting in vertical to velocity direction
     F_L = 0.0
 
+    state_diff = diff_eom_base(s, r, v, gamma, m, F_L, F_D, F_T, a_grav, alpha, Isp)
+
+    return state_diff
+
+
+
+def diff_eom_base(s, r, v, gamma, m, F_L, F_D, F_T, a_grav, alpha, Isp):
+    """
+    Differential equations of motion for the rocket WITHOUT earth rotation.
+    
+    Input:
+        - s: downtrack; [m]
+        - r: radius from Earth's center; [m]
+        - v: velocity norm; [m/s]
+        - gamma: flight path angle; [rad]
+        - m: current mass; [kg]
+        - F_L: lift force; [N]
+        - F_D: drag force; [N]
+        - F_T: thrust force; [N]
+        - a_grav: gravity acceleration; [m/s^2]
+        - alpha: angle of attack; [rad]
+        - Isp: specific impulse; [s]
+
+    Output:
+        - derivatives of the state vector
+    """
     # --- Get trigonometric operations of gamma and alpha ---
     c_gamma = np.cos(gamma)
     s_gamma = np.sin(gamma)
@@ -332,6 +387,78 @@ def rocket_dynamics(t, state, SS_throttle, initial_kick_angle):
     dmdt = - F_T / (Isp * c.g0)
 
     return [dsdt, drdt, dvdt, dgammadt, dmdt]
+
+
+
+# =========================== IGNORE FOR NOW ===========================
+
+# def diff_eom_advanced(s, r, v, gamma, m, F_L, F_D, F_T, a_grav, alpha, Isp):
+#     """
+#     Differential equations of motion for the rocket WITH earth rotation. 
+    
+#     Reference: "Particle Swarm Optimization of Ascent Trajectories of Multistage Launch Vehicles (Mauro Pontani, 2013)", page 8
+    
+#     Input:
+#         - s: downtrack; [m]
+#         - r: radius from Earth's center; [m]
+#         - v: velocity norm; [m/s]
+#         - gamma: flight path angle; [rad]
+#         - m: current mass; [kg]
+#         - F_L: lift force; [N]
+#         - F_D: drag force; [N]
+#         - F_T: thrust force; [N]
+#         - a_grav: gravity acceleration; [m/s^2]
+#         - alpha: angle of attack; [rad]
+#         - Isp: specific impulse; [s]
+
+#     Output:
+#         - derivatives of the state vector
+#     """
+#     # --- Get trigonometric operations of gamma and alpha ---
+#     c_gamma = np.cos(gamma)
+#     s_gamma = np.sin(gamma)
+#     c_alpha = np.cos(alpha)
+#     s_alpha = np.sin(alpha)
+
+#     # --- Compute the derivatives ---
+#     dsdt = (c.r_earth / r) * v * c_gamma
+
+#     # Reference: [1] Equations 6.3.8
+#     drdt = v * np.sin(gamma)
+
+#     # dvdt
+#     dvdt = (F_T / m) * c_alpha - (F_D / m) - a_grav * s_gamma + c.omega_earth**2 * r * np.cos(init.launch_lat) * (np.cos(init.launch_lat) * np.sin(gamma) - np.sin(init.launch_lat) * np.cos(gamma) * np.sin(init.inc_desired))
+
+#     # Catch the case of zero velocity to avoid division by zero
+#     epsilon = 1e-6
+#     if v < epsilon:
+#         dgammadt = 0.
+#     else:
+#         # Reference: [1] Equation 6.3.7
+#         # dgammadt = (1./v) * ( (F_T / m) * s_alpha + F_L / m  - (a_grav - (v**2 / r)) * c_gamma )
+
+#         # 1st term
+#         term_1 = (F_T / m) * s_alpha
+
+#         # 2nd term
+#         term_2 = (v**2 * r - c.mu_earth) / (r**2 * v) * c_gamma
+
+#         # 3rd term
+#         term_3 = 2 * c.omega_earth * np.cos(init.launch_lat) * np.cos(init.inc_desired)
+
+#         # 4th term
+#         term_4 = ((c.omega_earth**2 * r) / v) * np.cos(init.launch_lat) * (np.cos(init.launch_lat) * np.cos(gamma) + np.sin(init.launch_lat) * np.sin(gamma) * np.sin(init.inc_desired))
+
+#         dgammadt = term_1 + term_2 + term_3 + term_4
+    
+#     # Derivative of mass
+#     dmdt = - F_T / (Isp * c.g0)
+
+#     return [dsdt, drdt, dvdt, dgammadt, dmdt]
+
+# ======================================================================
+
+
 
 
 
