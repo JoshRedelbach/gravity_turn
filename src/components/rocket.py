@@ -215,15 +215,18 @@ def thrust_Isp(SS_throttle):
         - Isp: current specific impulse; [s]
     """
     
-    global main_engine_cutoff, second_engine_ignition
+    global main_engine_cutoff, second_engine_ignition, second_stage_cutoff
     
-    if main_engine_cutoff == False:
+    if not main_engine_cutoff:
         F_T = par_roc.F_thrust_1
         Isp = par_roc.Isp_1
-    elif main_engine_cutoff == True and second_engine_ignition == False:
+    elif main_engine_cutoff and not second_engine_ignition:
         F_T = 0
         Isp = par_roc.Isp_1
-    elif main_engine_cutoff == True and second_engine_ignition == True:
+    elif main_engine_cutoff and second_stage_cutoff:
+        F_T = 0
+        Isp = par_roc.Isp_2
+    elif main_engine_cutoff and second_engine_ignition:
         F_T = par_roc.F_thrust_2 * SS_throttle
         Isp = par_roc.Isp_2
     else:
@@ -380,7 +383,7 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, stage_2
 
 def run(SS_throttle, initial_kick_angle):
     
-    global time_kick_start, kick_performed, time_raise, main_engine_cutoff, second_engine_ignition, stage_2_burnt, time_main_engine_cutoff
+    global time_kick_start, kick_performed, time_raise, main_engine_cutoff, second_engine_ignition, stage_2_burnt, time_main_engine_cutoff, second_stage_cutoff
     
     #===================================================
     # Reset global variables
@@ -392,6 +395,7 @@ def run(SS_throttle, initial_kick_angle):
     second_engine_ignition = False                  # flag to check if the second stage engine is ignited
     stage_2_burnt = False                           # flag to check if the second stage is burnt
     time_main_engine_cutoff = None                  # time when the main engine cuts off
+    second_stage_cutoff = False                     # flag to check if the second stage is cutoff
 
     # ---- Debugging ---- 
     # Print desired orbit
@@ -441,7 +445,7 @@ def run(SS_throttle, initial_kick_angle):
 
 def run_full(SS_throttle, initial_kick_angle):
     
-    global time_kick_start, kick_performed, time_raise, main_engine_cutoff, second_engine_ignition, stage_2_burnt, time_main_engine_cutoff
+    global time_kick_start, kick_performed, time_raise, main_engine_cutoff, second_engine_ignition, stage_2_burnt, time_main_engine_cutoff, second_stage_cutoff
     
     #===================================================
     # Reset global variables
@@ -453,6 +457,7 @@ def run_full(SS_throttle, initial_kick_angle):
     second_engine_ignition = False                  # flag to check if the second stage engine is ignited
     stage_2_burnt = False                           # flag to check if the second stage is burnt
     time_main_engine_cutoff = None                  # time when the main engine cuts off
+    second_stage_cutoff = False                     # flag to check if the second stage is cutoff
 
     # ---- Debugging ---- 
     # Print desired orbit
@@ -491,12 +496,11 @@ def run_full(SS_throttle, initial_kick_angle):
     time_2 = 500.   #<------TODO
     
     # Call simulation for stage 1
-    #print("Second Simulation started!")
+    print("Second Simulation started!")
     sol_2 = simulate_trajectory(init_time_2, time_2, initial_state_2, False, True, SS_throttle, initial_kick_angle)
     
     # Cutoff second stage engine
-    main_engine_cutoff = True
-    second_engine_ignition = False
+    second_stage_cutoff = True
     
     #===================================================
     # Simulation after second engine burnout
@@ -510,7 +514,7 @@ def run_full(SS_throttle, initial_kick_angle):
     time_3 = 1200.   #<------ TODO
     
     # Call simulation
-    #print("Third Simulation started!")
+    print("Third Simulation started!")
     sol_3 = simulate_trajectory(init_time_3, time_3, initial_state_3, False, False, SS_throttle, initial_kick_angle)
     
     data = np.concatenate((sol_1.y, sol_2.y, sol_3.y), axis=1)
