@@ -49,3 +49,64 @@ def second_throttle_objective(throttle):
 
 def find_throttle():
     return bisect(second_throttle_objective, 2, 0.3, xtol=1e-6, maxiter=500)
+
+
+
+# =======================================================
+#  Hohman Solver
+# =======================================================
+    
+def circularize_delta_v(r, v):
+    """
+    NOTE: NOT TESTED YET!
+
+    Computes the delta-v required to circularize an orbit at radius r with velocity v.
+
+    Input:
+        - r: radius of the orbit; [m]
+        - v: velocity of the spacecraft; [m/s]
+    
+    Output:
+        - delta_v: delta-v required to circularize the orbit; [m/s]
+    """
+    # Compute required velocity at circular orbit with radius r
+    v_circular = np.sqrt(c.mu_earth / r)
+
+    # Compute delta-v
+    delta_v = v_circular - v
+
+    return delta_v
+
+
+def hohman_transfer(v1, r1, r2):
+    """
+    NOTE: NOT TESTED YET!
+
+    Computes the delta-v required to perform first burn at r1 to set new apogee to r2 and second burn at r2 to circularize the orbit.
+
+    Input:
+        - v1: velocity of the spacecraft at r1; [m/s]
+        - r1: radius of the initial orbit; [m]
+        - r2: radius of the final orbit; [m]
+
+    Output:
+        - delta_v1: delta-v required for the first burn; [m/s]
+        - delta_v2: delta-v required for the second burn; [m/s]
+        - delta_v_total: total delta-v required for the transfer; [m/s]
+    """
+    # Compute semi-major axis of the transfer orbit
+    a_transfer = (r1 + r2) / 2
+
+    # Compute required velocity of the spacecraft at r2
+    v2 = np.sqrt(c.mu_earth * (2 / r2 - 1 / a_transfer))
+
+    # Compute delta-v required for the first burn
+    delta_v1 = v2 - v1
+
+    # Compute delta-v required for the second burn
+    delta_v2 = circularize_delta_v(r2, v2)
+    
+    # Compute total delta-v required for the transfer
+    delta_v_total = delta_v1 + delta_v2
+
+    return delta_v1, delta_v2, delta_v_total
