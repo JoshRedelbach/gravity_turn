@@ -58,6 +58,8 @@ def find_throttle():
     
 def circularize_delta_v(r, v):
     """
+    NOTE: NOT TESTED YET!
+
     Computes the delta-v required to circularize an orbit at radius r with velocity v.
 
     Input:
@@ -78,6 +80,8 @@ def circularize_delta_v(r, v):
 
 def hohman_transfer(v1, r1, r2):
     """
+    NOTE: NOT TESTED YET!
+
     Computes the delta-v required to perform first burn at r1 to set new apogee to r2 and second burn at r2 to circularize the orbit.
 
     Input:

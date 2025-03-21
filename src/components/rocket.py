@@ -9,7 +9,7 @@ import plotting.plot_results as plot_results
 import numpy as np
 from scipy.integrate import solve_ivp
 from components.rocket_selector import select_rocket
-import solvers
+import components.solvers as solvers
 
 # Selected Launch Vehicle
 par_roc = select_rocket(init.LV)  # Replace 'MK1' with the name of your desired rocket module
@@ -260,6 +260,8 @@ def pitch_programm_linear(t, initial_kick_angle):
 
 def apogee_check(r, v, gamma):
     """
+    NOTE: NOT TESTED YET!
+    
     Checks if the current apogee is within a certain margin close to the desired altitude and gives the required delta_v to circularize if it is or high delta_v if not.
 
     Input: 
@@ -300,6 +302,9 @@ def rocket_dynamics(t, state, SS_throttle, initial_kick_angle):
         - v: velocity norm; [m/s]
         - gamma: flight path angle; [rad]
         - m: current mass; [kg]
+        - lat: latitude (ECI); [rad]
+        - lon: longitude (ECI); [rad]
+        - ceta: heading angle (ECI); [rad]
 
     Output:
         - derivatives of the state vector
@@ -307,7 +312,7 @@ def rocket_dynamics(t, state, SS_throttle, initial_kick_angle):
     global time_kick_start, kick_performed, main_engine_cutoff
 
     # Get state components
-    s, r, v, gamma, m = state
+    s, r, v, gamma, m, lat, lon, ceta = state
 
     # Compute altitude above Earth's surface
     alt = r - c.r_earth                # altitude of the rocket; [m]
@@ -335,6 +340,7 @@ def rocket_dynamics(t, state, SS_throttle, initial_kick_angle):
     F_L = 0.0
 
     state_diff = diff_eom_base(s, r, v, gamma, m, F_L, F_D, F_T, a_grav, alpha, Isp)
+    # state_diff = diff_eom_advanced(s, r, v, gamma, m, lat, lon, ceta, F_L, F_D, F_T, a_grav, alpha, Isp)
 
     return state_diff
 
@@ -358,7 +364,7 @@ def diff_eom_base(s, r, v, gamma, m, F_L, F_D, F_T, a_grav, alpha, Isp):
         - Isp: specific impulse; [s]
 
     Output:
-        - derivatives of the state vector
+        - derivatives of the state vector (for all variables)
     """
     # --- Get trigonometric operations of gamma and alpha ---
     c_gamma = np.cos(gamma)
@@ -386,79 +392,88 @@ def diff_eom_base(s, r, v, gamma, m, F_L, F_D, F_T, a_grav, alpha, Isp):
     # Derivative of mass
     dmdt = - F_T / (Isp * c.g0)
 
-    return [dsdt, drdt, dvdt, dgammadt, dmdt]
+    return [dsdt, drdt, dvdt, dgammadt, dmdt, 0, 0, 0]
 
 
-
-# =========================== IGNORE FOR NOW ===========================
-
-# def diff_eom_advanced(s, r, v, gamma, m, F_L, F_D, F_T, a_grav, alpha, Isp):
-#     """
-#     Differential equations of motion for the rocket WITH earth rotation. 
+""" 
+NOTE: 
+Be careful with the advanced equations of motion. They are not fully implemented yet!
+Division by zero could occur!
+"""
+def diff_eom_advanced(s, r, v, gamma, m, lat, lon, ceta, F_L, F_D, F_T, a_grav, alpha, Isp):
+    """
+    Differential equations of motion for the rocket WITH earth rotation. 
     
-#     Reference: "Particle Swarm Optimization of Ascent Trajectories of Multistage Launch Vehicles (Mauro Pontani, 2013)", page 8
+    Reference: "Particle Swarm Optimization of Ascent Trajectories of Multistage Launch Vehicles (Mauro Pontani, 2013)", page 8
     
-#     Input:
-#         - s: downtrack; [m]
-#         - r: radius from Earth's center; [m]
-#         - v: velocity norm; [m/s]
-#         - gamma: flight path angle; [rad]
-#         - m: current mass; [kg]
-#         - F_L: lift force; [N]
-#         - F_D: drag force; [N]
-#         - F_T: thrust force; [N]
-#         - a_grav: gravity acceleration; [m/s^2]
-#         - alpha: angle of attack; [rad]
-#         - Isp: specific impulse; [s]
+    Input:
+        - s: downtrack; [m]
+        - r: radius from Earth's center; [m]
+        - v: velocity norm; [m/s]
+        - gamma: flight path angle; [rad]
+        - m: current mass; [kg]
+        - lat: latitude (ECI); [rad]
+        - lon: longitude (ECI); [rad]
+        - ceta: heading angle (ECI); [rad]
+        - F_L: lift force; [N]
+        - F_D: drag force; [N]
+        - F_T: thrust force; [N]
+        - a_grav: gravity acceleration; [m/s^2]
+        - alpha: angle of attack; [rad]
+        - Isp: specific impulse; [s]
 
-#     Output:
-#         - derivatives of the state vector
-#     """
-#     # --- Get trigonometric operations of gamma and alpha ---
-#     c_gamma = np.cos(gamma)
-#     s_gamma = np.sin(gamma)
-#     c_alpha = np.cos(alpha)
-#     s_alpha = np.sin(alpha)
+    Output:
+        - derivatives of the state vector (for all variables)
+    """
+    # --- Get trigonometric operations of gamma and alpha ---
+    c_gamma = np.cos(gamma)
+    s_gamma = np.sin(gamma)
+    c_alpha = np.cos(alpha)
+    s_alpha = np.sin(alpha)
 
-#     # --- Compute the derivatives ---
-#     dsdt = (c.r_earth / r) * v * c_gamma
+    # --- Compute the derivatives ---
+    dsdt = (c.r_earth / r) * v * c_gamma
 
-#     # Reference: [1] Equations 6.3.8
-#     drdt = v * np.sin(gamma)
+    # Reference: [1] Equations 6.3.8
+    drdt = v * np.sin(gamma)
 
-#     # dvdt
-#     dvdt = (F_T / m) * c_alpha - (F_D / m) - a_grav * s_gamma + c.omega_earth**2 * r * np.cos(init.launch_lat) * (np.cos(init.launch_lat) * np.sin(gamma) - np.sin(init.launch_lat) * np.cos(gamma) * np.sin(init.inc_desired))
+    # dvdt
+    dvdt = (F_T / m) * c_alpha - (F_D / m) - a_grav * s_gamma + c.omega_earth**2 * r * np.cos(lat) * (np.cos(lat) * np.sin(gamma) - np.sin(lat) * np.cos(gamma) * np.sin(ceta))
 
-#     # Catch the case of zero velocity to avoid division by zero
-#     epsilon = 1e-6
-#     if v < epsilon:
-#         dgammadt = 0.
-#     else:
-#         # Reference: [1] Equation 6.3.7
-#         # dgammadt = (1./v) * ( (F_T / m) * s_alpha + F_L / m  - (a_grav - (v**2 / r)) * c_gamma )
+    # Catch the case of zero velocity to avoid division by zero
+    epsilon = 1e-6
+    if v < epsilon:
+        dgammadt = 0.
+    else:
 
-#         # 1st term
-#         term_1 = (F_T / m) * s_alpha
+        # 1st term
+        term_1 = (F_T / m) * s_alpha
 
-#         # 2nd term
-#         term_2 = (v**2 * r - c.mu_earth) / (r**2 * v) * c_gamma
+        # 2nd term
+        term_2 = (v**2 * r - c.mu_earth) / (r**2 * v) * c_gamma
 
-#         # 3rd term
-#         term_3 = 2 * c.omega_earth * np.cos(init.launch_lat) * np.cos(init.inc_desired)
+        # 3rd term
+        term_3 = 2 * c.omega_earth * np.cos(lat) * np.cos(ceta)
 
-#         # 4th term
-#         term_4 = ((c.omega_earth**2 * r) / v) * np.cos(init.launch_lat) * (np.cos(init.launch_lat) * np.cos(gamma) + np.sin(init.launch_lat) * np.sin(gamma) * np.sin(init.inc_desired))
+        # 4th term
+        term_4 = ((c.omega_earth**2 * r) / v) * np.cos(lat) * (np.cos(lat) * np.cos(gamma) + np.sin(lat) * np.sin(gamma) * np.sin(ceta))
 
-#         dgammadt = term_1 + term_2 + term_3 + term_4
+        dgammadt = term_1 + term_2 + term_3 + term_4
     
-#     # Derivative of mass
-#     dmdt = - F_T / (Isp * c.g0)
+    # Derivative of mass
+    dmdt = - F_T / (Isp * c.g0)
 
-#     return [dsdt, drdt, dvdt, dgammadt, dmdt]
+    # Derivative of latitude
+    dlatdt = (v * np.cos(gamma) * np.sin(ceta)) / r
 
-# ======================================================================
+    # Derivative of longitude
+    dlondt = (v * np.cos(gamma) * np.cos(ceta)) / r
 
+    # Derivative of heading angle ceta
+    # NOTE: how do we handle the division by zero because of division by cos(gamma) and the division by zero because of v = 0?
+    dcetadt = - (v /r) * np.tan(lat) * np.cos(gamma) * np.cos(ceta) + 2 * c.omega_earth * np.cos(lat) * np.tan(gamma) * np.sin(ceta) - ((c.omega_earth**2 * r) / (v * np.cos(gamma))) * np.sin(lat) * np.cos(lat) * np.cos(ceta) - 2 * c.omega_earth * np.sin(lat) + 0.
 
+    return [dsdt, drdt, dvdt, dgammadt, dmdt, dlatdt, dlondt, dcetadt]
 
 
 
@@ -521,7 +536,7 @@ def run(SS_throttle, initial_kick_angle):
 
     # Define initial state
     initial_mass = par_roc.m_structure_1 + par_roc.m_prop_1 + par_roc.m_structure_2 + par_roc.m_prop_2 + par_roc.m_payload
-    initial_state_1 = [0., c.r_earth, 0., np.deg2rad(90.), initial_mass]
+    initial_state_1 = [0., c.r_earth, 0., np.deg2rad(90.), initial_mass, 0, 0, 0]  # [s, r, v, gamma, m, lat, lon, ceta]
 
     # Define time of simulation 1
     time_1 = 500.   #<------TODO
