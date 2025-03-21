@@ -57,6 +57,7 @@ INITIAL_KICK_ANGLE = np.deg2rad(-12.519898194074626)   # Initial kick angle [rad
 # ===================================================
 # Orbit Injection With Coasting specific parameters
 # ===================================================
+ALT_NO_ATMOSPHERE = 70e3        # altitude where atmosphere can be neglected; [m]
 
 
 
