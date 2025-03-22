@@ -35,11 +35,6 @@ def single_run(time_steps, data, INITIAL_KICK_ANGLE):
     # -------------- Prepare data --------------
     h = (data[1] - c.R_EARTH) / 1000.       # altitude h; [km]
     s = data[0] / 1000.                     # downtrack s; [km]
-    
-    # Compute cartesian coordinates
-    x, y = r.cartesian_coordinates(h, s)
-    x = x/1000
-    y = y/1000
 
     q = []          # dynamic pressure; [Pa]
     for i in range(len(time_steps)):
@@ -67,7 +62,7 @@ def single_run(time_steps, data, INITIAL_KICK_ANGLE):
     fig1, axs1 = plt.subplots(2, 4, figsize=(15, 15))
 
     # Position plot: r over s
-    axs1[0, 0].plot(x, y)
+    axs1[0, 0].plot(s, h)
     axs1[0, 0].set_xlabel('downtrack s [km]')
     axs1[0, 0].set_ylabel('altitude h [km]')
     axs1[0, 0].set_title('Trajectory of Rocket')

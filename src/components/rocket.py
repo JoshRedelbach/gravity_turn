@@ -18,9 +18,9 @@ par_roc = select_rocket(init.LV)  # Replace 'MK1' with the name of your desired 
 # Interrupt functions for simulation
 #===================================================
 
-def interrupt_radius_check(t, y, ss_throttle, initial_kick_angle):
-    """
-    Returns zero, if the current radius exceeds the radius of the desired.
+# def interrupt_radius_check(t, y, ss_throttle, initial_kick_angle):
+#     """
+#     Returns zero, if the current radius exceeds the radius of the desired.
     
     Input:
         - t: current time since launch; [s]
@@ -34,6 +34,7 @@ def interrupt_radius_check(t, y, ss_throttle, initial_kick_angle):
         print("Interrupt Radius Check happened at time ", t)
         return 0
     return 1
+
 
 
 def interrupt_stage_separation(t, y, ss_throttle, initial_kick_angle):
@@ -538,12 +539,14 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, stage_2
     t_eval = np.arange(init_time, init_time + time_stamp + init.TIME_STEP, init.TIME_STEP)
 
     if stage_1_flag:
-        interrupt_list = [interrupt_radius_check, interrupt_stage_separation, interrupt_ground_collision, interrupt_velocity_exceeded]
+        interrupt_list = [interrupt_stage_separation, interrupt_ground_collision, interrupt_velocity_exceeded]
     elif stage_2_flag:
+
         if init.SYM_TYPE == 4:
             interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_ground_collision, interrupt_single_burn]
         else:
             interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_ground_collision, interrupt_velocity_exceeded]
+
     else:
         interrupt_list = [interrupt_ground_collision]
     
@@ -610,7 +613,7 @@ def run(ss_throttle, initial_kick_angle):
     
     # Define time of simulation 2
     init_time_2 = sol_1.t[-1]
-    time_2 = 500.   #<------TODO
+    time_2 = 4000.   #<------TODO
     
     # Call simulation for stage 1
     print("Second Simulation started!")
@@ -675,3 +678,4 @@ def run(ss_throttle, initial_kick_angle):
         time_steps_simulation = np.concatenate((sol_1.t, sol_2.t, sol_3.t))
         
         return time_steps_simulation, data
+
