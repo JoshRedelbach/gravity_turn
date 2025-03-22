@@ -5,6 +5,7 @@
 import numpy as np
 from scipy.optimize import bisect, minimize
 from scipy.optimize import differential_evolution
+from scipy.optimize import shgo
 from components.rocket import run
 
 import components.constants as c
@@ -61,7 +62,7 @@ def second_throttle_objective(throttle):
     print("Kick angle", np.rad2deg(INITIAL_KICK_ANGLE))
     print("Last gamma: ", np.rad2deg(last_gamma))
     print("Throttle: ", throttle)
-    a, e, r_apo, r_peri = rocket.get_orbital_elements(data[1, -1], data[2, -1], data[3, -1])
+    a, e, r_apo, r_peri, _ = rocket.get_orbital_elements(data[1, -1], data[2, -1], data[3, -1])
     print("Perigee: ", r_peri - c.R_EARTH, "m")
     print("Apogee: ", r_apo - c.R_EARTH, "m")
     print("Eccentricity: ", e)
@@ -138,6 +139,37 @@ def hohman_transfer(v1, r1, r2):
     return delta_v1, delta_v2, delta_v_total
 
 
+def get_time_until_apogee(e, gamma, v, T, a, r):
+    """
+    NOTE: NOT TESTED YET!
+
+    Computes the time until the spacecraft reaches the apogee of the orbit.
+
+    Input:
+        - e: eccentricity of the orbit
+        - gamma: flight path angle of the spacecraft; [rad]
+        - v: velocity of the spacecraft; [m/s]
+        - T: period of the orbit; [s]
+        - a: semi-major axis of the orbit; [m]
+        - r: radius of the orbit; [m]
+
+    Output:
+        - time_until_apogee: time until the spacecraft reaches the apogee of the orbit; [s]
+    """
+    # h = np.sqrt(c.MU_EARTH * a * (1 - e**2))                        # angular momentum
+    # print("h: ", h)
+    # print("Stuff in sin:", h * v * np.cos(gamma) / (c.MU_EARTH * e))
+    # theta = np.arcsin(h * v * np.cos(gamma) / (c.MU_EARTH * e))     # true anomaly of stop point
+
+    theta = np.arccos((a * (1 - e**2) - r) / (e * r))                # true anomaly of stop point
+
+    ecc_anomaly = 2 * np.arctan2(np.sqrt((1 - e) / (1 + e)) * (1 - np.cos(theta)), np.sin(theta))    # eccentric anomaly of stop point
+    mean_anomaly = ecc_anomaly - e * np.sin(ecc_anomaly)             # mean anomaly of stop point
+    time_until_apogee = T / (2 * np.pi) * mean_anomaly               # time until the spacecraft reaches the apogee of the orbit
+    time_until_apogee = (T / 2.) - time_until_apogee
+
+    return time_until_apogee
+    
 
 # =======================================================
 #  Coasting and Single Burn Solver (gravity turn)
@@ -160,7 +192,7 @@ def coasting_single_burn_objective(kick_angle):
     print("Propellant used: ", m_propellant_total_used_2nd_stage, "kg")
     print("\n")
 
-    a, e, r_apo, r_peri = rocket.get_orbital_elements(data[1,-1], data[2,-1], data[3,-1])
+    a, e, r_apo, r_peri, _ = rocket.get_orbital_elements(data[1,-1], data[2,-1], data[3,-1])
     print("Semimajor axis:\t\t ", a, "m")
     print("Eccentricity:\t\t ", e)
     print("Apoapsis altitude: \t", (r_apo - c.R_EARTH)/1000, "km")
@@ -178,6 +210,10 @@ def find_initial_kick_angle_coast_single_burn():
     """
     bounds = [(par_sim.ALPHA_LOWEST, par_sim.ALPHA_HIGHEST)]
 
+    initial_guess_1 = np.deg2rad(-60)
+    # initial_guess_2 = np.deg2rad(-30)
+    # initial_guess_3 = np.deg2rad(-10)
+
     result = differential_evolution(
         lambda x: abs(coasting_single_burn_objective(x[0])),
         bounds=bounds,
@@ -186,7 +222,23 @@ def find_initial_kick_angle_coast_single_burn():
         maxiter=1000,
         popsize=15,
         mutation=(0.5, 1),
-        recombination=0.7
+        recombination=0.7,
+        x0=[initial_guess_1]
     )
     
     return result.x[0]
+
+    # # Use SHGO optimizer
+    # result = shgo(
+    #     lambda x: abs(coasting_single_burn_objective(x[0])),
+    #     bounds=bounds,
+    #     sampling_method='sobol'
+    # )
+
+    # # Print all local minima found
+    # print("All local minima found:")
+    # for i, local_min in enumerate(result.xl):
+    #     print(f"Local minimum {i + 1}: Kick angle = {local_min[0]}, Objective value = {result.funl[i]}")
+
+    # # Return the global minimum
+    # return result.x[0]
