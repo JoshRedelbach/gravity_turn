@@ -15,6 +15,7 @@ import components.rocket as rocket
 # =======================================================
 
 def kick_angle_objective(kick_angle, throttle):
+
     """
     Objective function to find the initial kick angle for the gravity turn.
     

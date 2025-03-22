@@ -22,16 +22,19 @@ par_roc = select_rocket(init.LV)  # Replace 'MK1' with the name of your desired 
 #     """
 #     Returns zero, if the current radius exceeds the radius of the desired.
     
-#     Input:
-#         - t: current time since launch; [s]
-#         - y: current state vector
-#     """
-#     margin = 200e3
-#     r = y[1]
-#     if r > (init.ALT_DESIRED + c.R_EARTH + margin):
-#         #print("Interrupt Radius Check happened at time ", t)
-#         return 0
-#     return 1
+    Input:
+        - t: current time since launch; [s]
+        - y: current state vector
+        - ss_throttle: throttle of the second stage
+        - initial_kick_angle: angle of attack for the initial kick
+    """
+    margin = 50e3
+    r = y[1]
+    if r > (init.ALT_DESIRED + c.R_EARTH + margin):
+        print("Interrupt Radius Check happened at time ", t)
+        return 0
+    return 1
+
 
 
 def interrupt_stage_separation(t, y, ss_throttle, initial_kick_angle):
@@ -41,12 +44,14 @@ def interrupt_stage_separation(t, y, ss_throttle, initial_kick_angle):
     Input:
         - t: current time since launch; [s]
         - y: current state vector
+        - ss_throttle: throttle of the second stage
+        - initial_kick_angle: angle of attack for the initial kick
     """
     global time_main_engine_cutoff, main_engine_cutoff
 
     if main_engine_cutoff:
         if t >= (time_main_engine_cutoff + par_roc.DELAT_TIME_STAGE_SEPARATION):
-            #print("Interrupt Stage Separation happened at time ", t)
+            print("Interrupt Stage Separation happened at time ", t)
             return 0
     return 1
 
@@ -58,6 +63,8 @@ def interrupt_stage_separation(t, y, ss_throttle, initial_kick_angle):
 #     Input:
 #         - t: current time since launch; [s]
 #         - y: current state vector
+#         - ss_throttle: throttle of the second stage
+#         - initial_kick_angle: angle of attack for the initial kick
 #     """
 #     _, r, v, gamma, _ = y
     
@@ -81,10 +88,12 @@ def interrupt_stage_2_burnt(t, y, ss_throttle, initial_kick_angle):
     Input:
         - t: current time since launch; [s]
         - y: current state vector
+        - ss_throttle: throttle of the second stage
+        - initial_kick_angle: angle of attack for the initial kick
     """
     m = y[4]
     if m <= (par_roc.M_PAYLOAD + par_roc.M_STRUCTURE_2):
-        #print("Interrupt Stage 2 Burnt happened at time ", t)
+        print("Interrupt Stage 2 Burnt happened at time ", t)
         return 0
     return 1
 
@@ -96,10 +105,12 @@ def interrupt_ground_collision(t, y, ss_throttle, initial_kick_angle):
     Input:
         - t: current time since launch; [s]
         - y: current state vector
+        - ss_throttle: throttle of the second stage
+        - initial_kick_angle: angle of attack for the initial kick
     """
     r = y[1]
     if r < c.R_EARTH - 1e3:
-        #print("Interrupt Earth Collision happened at time ", t)
+        print("Interrupt Earth Collision happened at time ", t)
         return 0
     return 1
 
@@ -111,6 +122,8 @@ def interrupt_velocity_exceeded(t, y, ss_throttle, initial_kick_angle):
     Input:
         - t: current time since launch; [s]
         - y: current state vector
+        - ss_throttle: throttle of the second stage
+        - initial_kick_angle: angle of attack for the initial kick
     """
     v = y[2]
     r_desired = c.R_EARTH + init.ALT_DESIRED
@@ -121,6 +134,45 @@ def interrupt_velocity_exceeded(t, y, ss_throttle, initial_kick_angle):
     #     return 0
     return v - v_desired
 
+
+def interrupt_single_burn(t, y, ss_throttle, initial_kick_angle):
+    """
+    Performed as soon as the rocket reached the altitude where the atmosphere can be neglected.
+    Checks if the current apogee is within a certain margin close to the desired altitude (return 0) or not (return 1) if the rocket would stop burnig at the current time stamp.
+    
+    Input:
+        - t: current time since launch; [s]
+        - y: current state vector
+        - ss_throttle: throttle of the second stage
+        - initial_kick_angle: angle of attack for the initial kick
+    """
+    global single_burn_reached_flag
+
+    r = y[1]
+    v = y[2]
+    gamma = y[3]
+    alt = r - c.R_EARTH
+
+    if alt < init.ALT_NO_ATMOSPHERE:
+        return 1
+    else:
+        # Compute current orbital elements
+        a, e, r_apo, r_peri = get_orbital_elements(r, v, gamma)
+
+        diff = r_apo - (init.ALT_DESIRED + c.R_EARTH)
+        
+        return diff
+
+        # # Check if apogee is within a certain margin close to the desired altitude
+        # margin = 2e3     # meters
+        
+        # # check if apogee is within a certain margin close to desired altitude 
+        # if r_apo < (init.ALT_DESIRED + c.R_EARTH + margin) and r_apo > (init.ALT_DESIRED + c.R_EARTH - margin):
+        #     print("Altitude found to stop burning at time ", t)
+        #     single_burn_reached_flag = True
+        #     return 0
+        # else:
+        #     return 1
     
     
 #===================================================
@@ -270,38 +322,6 @@ def pitch_programm_linear(t, initial_kick_angle):
             angle_rate = (t - (time_kick_start + time_raise)) / (time_raise)
             return initial_kick_angle * (1 - angle_rate)
         
-
-
-def apogee_check(r, v, gamma):
-    """
-    NOTE: NOT TESTED YET!
-    
-    Performed as soon as we reached the altitude where the atmosphere can be neglected.
-    Checks if the current apogee is within a certain margin close to the desired altitude and gives the required delta_v to circularize if it is or high delta_v if not.
-
-    Input: 
-        - r: current radius; [m]
-        - v: current velocity norm; [m/s]
-        - gamma: current flight path angle; [rad]
-    
-    Output: 
-        radius_perigee, radius_apogee, delta_v_circularize
-    """
-    # Compute current orbital elements
-    a, e, r_apo, r_peri = get_orbital_elements(r, v, gamma)
-
-    # Check if apogee is within a certain margin close to the desired altitude
-    margin = 20     # meters
-    
-    # check if apogee is within a certain margin close to desired altitude 
-    if r_apo < (init.ALT_DESIRED + c.R_EARTH + margin) and r_apo > (init.ALT_DESIRED + c.R_EARTH - margin):
-        # if that is the case: compute required delta_v to circularize the orbit
-        return r_peri, r_apo, solvers.circularize_delta_v(r_apo, v)
-    else:
-        # if that was not the case: return large value for delta_v
-        delta_v_unsuccessful = 999999.
-        return r_peri, r_apo, delta_v_unsuccessful
-
 
 
 #===================================================
@@ -521,7 +541,12 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, stage_2
     if stage_1_flag:
         interrupt_list = [interrupt_stage_separation, interrupt_ground_collision, interrupt_velocity_exceeded]
     elif stage_2_flag:
-        interrupt_list = [interrupt_stage_2_burnt, interrupt_ground_collision, interrupt_velocity_exceeded]
+
+        if init.SYM_TYPE == 4:
+            interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_ground_collision, interrupt_single_burn]
+        else:
+            interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_ground_collision, interrupt_velocity_exceeded]
+
     else:
         interrupt_list = [interrupt_ground_collision]
     
@@ -539,7 +564,7 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, stage_2
 
 def run(ss_throttle, initial_kick_angle):
     
-    global time_kick_start, kick_performed, time_raise, main_engine_cutoff, second_engine_ignition, stage_2_burnt, time_main_engine_cutoff, second_stage_cutoff
+    global time_kick_start, kick_performed, time_raise, main_engine_cutoff, second_engine_ignition, stage_2_burnt, time_main_engine_cutoff, second_stage_cutoff, single_burn_reached_flag
     
     #===================================================
     # Reset global variables
@@ -552,68 +577,7 @@ def run(ss_throttle, initial_kick_angle):
     stage_2_burnt = False                           # flag to check if the second stage is burnt
     time_main_engine_cutoff = None                  # time when the main engine cuts off
     second_stage_cutoff = False                     # flag to check if the second stage is cutoff
-
-    # ---- Debugging ---- 
-    # Print desired orbit
-    r_desired = c.R_EARTH + init.ALT_DESIRED
-    v_desired = np.sqrt(c.MU_EARTH / r_desired)
-    #print(r_desired)
-    #print(v_desired)
-
-    #===================================================
-    # Simulation until stage separation
-    #===================================================
-
-    # Define initial state
-    initial_mass = par_roc.M_STRUCTURE_1 + par_roc.M_PROP_1 + par_roc.M_STRUCTURE_2 + par_roc.M_PROP_2 + par_roc.M_PAYLOAD
-    initial_state_1 = [0., c.R_EARTH, 0., np.deg2rad(90.), initial_mass, 0, 0, 0]  # [s, r, v, gamma, m, lat, lon, ceta]
-
-    # Define time of simulation 1
-    time_1 = 2000.   #<------TODO
-
-    # Call simulation for stage 1
-    sol_1 = simulate_trajectory(0, time_1, initial_state_1, True, False, ss_throttle, initial_kick_angle)
-
-    
-    #===================================================
-    # Simulation after stage separation
-    #===================================================
-    
-    # Define new initial state
-    initial_state_2 = sol_1.y[:, -1]
-
-    # Adjust mass -> perform stage separation
-    initial_state_2[4] = initial_state_2[4] - par_roc.M_STRUCTURE_1
-    
-    # Define time of simulation 2
-    init_time_2 = sol_1.t[-1]
-    time_2 = 4000.   #<------TODO
-    
-    # Call simulation for stage 1
-    #print("Second Simulation started!")
-    sol_2 = simulate_trajectory(init_time_2, time_2, initial_state_2, False, True, ss_throttle, initial_kick_angle)
-    
-    data = np.concatenate((sol_1.y, sol_2.y), axis=1)
-    time_steps_simulation = np.concatenate((sol_1.t, sol_2.t))
-    
-    return time_steps_simulation, data
-
-
-def run_full(ss_throttle, initial_kick_angle):
-    
-    global time_kick_start, kick_performed, time_raise, main_engine_cutoff, second_engine_ignition, stage_2_burnt, time_main_engine_cutoff, second_stage_cutoff
-    
-    #===================================================
-    # Reset global variables
-    #===================================================
-    time_kick_start = None                          # time when the initial kick starts
-    kick_performed = False                          # flag to check if the initial kick has been performed
-    time_raise = init.DURATION_INITIAL_KICK / 2. # time to raise the angle of attack to the maximum value; [s]
-    main_engine_cutoff = False                      # flag to check if the first stage engine is cutoff
-    second_engine_ignition = False                  # flag to check if the second stage engine is ignited
-    stage_2_burnt = False                           # flag to check if the second stage is burnt
-    time_main_engine_cutoff = None                  # time when the main engine cuts off
-    second_stage_cutoff = False                     # flag to check if the second stage is cutoff
+    single_burn_reached_flag = False                # flag to check if the rocket reached the altitude to stop burning
 
     # ---- Debugging ---- 
     # Print desired orbit
@@ -654,26 +618,64 @@ def run_full(ss_throttle, initial_kick_angle):
     # Call simulation for stage 1
     print("Second Simulation started!")
     sol_2 = simulate_trajectory(init_time_2, time_2, initial_state_2, False, True, ss_throttle, initial_kick_angle)
+
+    if init.SYM_TYPE != 2:
+        data = np.concatenate((sol_1.y, sol_2.y), axis=1)
+        time_steps_simulation = np.concatenate((sol_1.t, sol_2.t))
+
+        if init.SYM_TYPE == 4:
+            
+            r_stop = sol_2.y[1, -1]
+            v_stop = sol_2.y[2, -1]
+            gamma_stop = sol_2.y[3, -1]
+        
+            # Calculate altitude to stop burning
+            alt_stop = r_stop - c.R_EARTH
+            
+            # Calculate orbital elements at stop
+            a_stop, e_stop, r_apo_stop, r_peri_stop = get_orbital_elements(r_stop, v_stop, gamma_stop)
+
+            epsilon = 1.
+            if abs(r_apo_stop - (c.R_EARTH + init.ALT_DESIRED)) < epsilon:
+                
+                # Calculate delta v to circularize orbit
+                r_desired = c.R_EARTH + init.ALT_DESIRED
+                v_desired = np.sqrt(c.MU_EARTH / r_desired)
+                
+                # Get velocity at apogee
+                v_apo = np.sqrt(c.MU_EARTH * a_stop * (1 - e_stop**2)) / r_apo_stop
+                # v_apo = np.sqrt(c.MU_EARTH * ((2. / r_apo_stop) - (1. / a_stop)))
+
+                # Calculate delta v
+                delta_v = np.abs(v_apo - v_desired)
+                
+                return time_steps_simulation, data, alt_stop, delta_v
+            else:
+                return time_steps_simulation, data, None, 9999999.0
+
+        return time_steps_simulation, data
     
-    # Cutoff second stage engine
-    second_stage_cutoff = True
-    
-    #===================================================
-    # Simulation after second engine burnout
-    #===================================================
-    
-    # Define new initial state
-    initial_state_3 = sol_2.y[:, -1]
-    
-    # Define time of simulation 3
-    init_time_3 = sol_2.t[-1]
-    time_3 = init.DURATION_AFTER_SS_CUTOFF
-    
-    # Call simulation
-    print("Third Simulation started!")
-    sol_3 = simulate_trajectory(init_time_3, time_3, initial_state_3, False, False, ss_throttle, initial_kick_angle)
-    
-    data = np.concatenate((sol_1.y, sol_2.y, sol_3.y), axis=1)
-    time_steps_simulation = np.concatenate((sol_1.t, sol_2.t, sol_3.t))
-    
-    return time_steps_simulation, data
+    else:
+        # Cutoff second stage engine
+        second_stage_cutoff = True
+        
+        #===================================================
+        # Simulation after second engine burnout
+        #===================================================
+        
+        # Define new initial state
+        initial_state_3 = sol_2.y[:, -1]
+        
+        # Define time of simulation 3
+        init_time_3 = sol_2.t[-1]
+        time_3 = init.DURATION_AFTER_SIMULATION
+        
+        # Call simulation
+        print("Third Simulation started!")
+        sol_3 = simulate_trajectory(init_time_3, time_3, initial_state_3, False, False, ss_throttle, initial_kick_angle)
+        
+        data = np.concatenate((sol_1.y, sol_2.y, sol_3.y), axis=1)
+        time_steps_simulation = np.concatenate((sol_1.t, sol_2.t, sol_3.t))
+        
+        return time_steps_simulation, data
+

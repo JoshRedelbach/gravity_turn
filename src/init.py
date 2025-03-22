@@ -8,11 +8,15 @@ import numpy as np
 LV = 'MK1'                      # Launch Vehicle selected
 
 # -------------- Select Simulation Type ----------------
-SYM_TYPE = 3
+
+SYM_TYPE = 4
+
 """
     1 -> Single Run
     2 -> Single Run Full
-    3 -> Direct Orbit Injection No Coast
+    3 -> Optimization Direct Orbit Injection No Coast
+    4 -> Optimization Orbit Injection With Coasting Single Burn
+    5 -> Optimization Orbit Injection With Coasting Double Burn
 """
 
 # ===================================================
@@ -42,10 +46,16 @@ LAUNCH_LON = np.deg2rad(0.)     # longitude of launch site; [rad]
 # ===================================================
 # Single Run specific parameters
 # ===================================================
+# SS_THROTTLE = 0.35028862953186024     # Second Stage throttle
+SS_THROTTLE = 1.0     # Second Stage throttle 
+INITIAL_KICK_ANGLE = np.deg2rad(-15)   # Initial kick angle [rad]
 
-SS_THROTTLE = 0.1     # Second Stage throttle 
 
-INITIAL_KICK_ANGLE = np.deg2rad(-0.14120375053650797)   # Initial kick angle [rad]
+# ===================================================
+# Single Run Full specific parameters
+# ===================================================
+DURATION_AFTER_SIMULATION = 1000.  # duration of simulation after reaching desired orbit; [s]
+
 
 # ===================================================
 # Single Run  Full specific parameters
@@ -62,7 +72,7 @@ DURATION_AFTER_SS_CUTOFF = 1000.  # duration after second stage cutoff; [s]
 # ===================================================
 # Orbit Injection With Coasting specific parameters
 # ===================================================
-ALT_NO_ATMOSPHERE = 70e3        # altitude where atmosphere can be neglected; [m]
+ALT_NO_ATMOSPHERE = 65e3        # altitude where atmosphere can be neglected; [m]
 
 
 

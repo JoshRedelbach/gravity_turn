@@ -27,7 +27,5 @@ def plot(time, data, initial_kick_angle):
 
     
 def execute():
-    
     time, data = rocket.run(init.SS_THROTTLE, init.INITIAL_KICK_ANGLE)
     plot(time, data, init.INITIAL_KICK_ANGLE)
-    
