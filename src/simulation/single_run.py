@@ -10,7 +10,7 @@ import numpy as np
 
 
 def plot(time, data, initial_kick_angle):
-    a, e, r_apo, r_peri = rocket.get_orbital_elements(data[1,-1], data[2,-1], data[3,-1])
+    a, e, r_apo, r_peri, _ = rocket.get_orbital_elements(data[1,-1], data[2,-1], data[3,-1])
     
     print("\nSemimajor axis: ", a, "m")
     print("Eccentricity: ", e)
