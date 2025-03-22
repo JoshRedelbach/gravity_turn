@@ -4,6 +4,7 @@
 
 import numpy as np
 from scipy.optimize import bisect, minimize
+from scipy.optimize import differential_evolution
 from components.rocket import run
 
 import components.constants as c
@@ -135,3 +136,57 @@ def hohman_transfer(v1, r1, r2):
     delta_v_total = delta_v1 + delta_v2
 
     return delta_v1, delta_v2, delta_v_total
+
+
+
+# =======================================================
+#  Coasting and Single Burn Solver (gravity turn)
+# =======================================================
+
+def coasting_single_burn_objective(kick_angle):
+    """
+    Objective function to find the initial kick angle for the gravity turn which minimizes the used propellant in the second stage.
+    
+    Input:
+        - kick angle: initial kick angle; [rad]
+    
+    Output:
+        - m_propellant_total_used_2nd_stage: total mass of propellant used in the second stage; [kg]
+    """
+    time, data, alt_stopped, delta_v, m_propellant_total_used_2nd_stage = run(1.0, kick_angle)
+    print("\nAltitude stopped: ", str(alt_stopped), "m")
+    print("Delta V: ", str(delta_v/1000), "km/s")
+    print("Kick angle: ", np.rad2deg(kick_angle))
+    print("Propellant used: ", m_propellant_total_used_2nd_stage, "kg")
+    print("\n")
+
+    a, e, r_apo, r_peri = rocket.get_orbital_elements(data[1,-1], data[2,-1], data[3,-1])
+    print("Semimajor axis:\t\t ", a, "m")
+    print("Eccentricity:\t\t ", e)
+    print("Apoapsis altitude: \t", (r_apo - c.R_EARTH)/1000, "km")
+    print("Periapsis altitude: \t", (r_peri - c.R_EARTH)/1000, "km")
+    print("\n\n")
+    return m_propellant_total_used_2nd_stage
+
+
+def find_initial_kick_angle_coast_single_burn():
+    """
+    Finds the initial kick angle for the gravity turn using the differential evolution optimizer.
+    
+    Output:
+        - initial kick angle: initial kick angle; [rad]
+    """
+    bounds = [(par_sim.ALPHA_LOWEST, par_sim.ALPHA_HIGHEST)]
+
+    result = differential_evolution(
+        lambda x: abs(coasting_single_burn_objective(x[0])),
+        bounds=bounds,
+        tol=1e-7,
+        strategy='best1bin',
+        maxiter=1000,
+        popsize=15,
+        mutation=(0.5, 1),
+        recombination=0.7
+    )
+    
+    return result.x[0]

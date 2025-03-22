@@ -31,7 +31,7 @@ def interrupt_radius_check(t, y, ss_throttle, initial_kick_angle):
     margin = 50e3
     r = y[1]
     if r > (init.ALT_DESIRED + c.R_EARTH + margin):
-        print("Interrupt Radius Check happened at time ", t)
+        # print("Interrupt Radius Check happened at time ", t)
         return 0
     return 1
 
@@ -51,7 +51,7 @@ def interrupt_stage_separation(t, y, ss_throttle, initial_kick_angle):
 
     if main_engine_cutoff:
         if t >= (time_main_engine_cutoff + par_roc.DELAT_TIME_STAGE_SEPARATION):
-            print("Interrupt Stage Separation happened at time ", t)
+            # print("Interrupt Stage Separation happened at time ", t)
             return 0
     return 1
 
@@ -93,7 +93,7 @@ def interrupt_stage_2_burnt(t, y, ss_throttle, initial_kick_angle):
     """
     m = y[4]
     if m <= (par_roc.M_PAYLOAD + par_roc.M_STRUCTURE_2):
-        print("Interrupt Stage 2 Burnt happened at time ", t)
+        # print("Interrupt Stage 2 Burnt happened at time ", t)
         return 0
     return 1
 
@@ -110,7 +110,7 @@ def interrupt_ground_collision(t, y, ss_throttle, initial_kick_angle):
     """
     r = y[1]
     if r < c.R_EARTH - 1e3:
-        print("Interrupt Earth Collision happened at time ", t)
+        # print("Interrupt Earth Collision happened at time ", t)
         return 0
     return 1
 
@@ -635,23 +635,44 @@ def run(ss_throttle, initial_kick_angle):
             # Calculate orbital elements at stop
             a_stop, e_stop, r_apo_stop, r_peri_stop = get_orbital_elements(r_stop, v_stop, gamma_stop)
 
-            epsilon = 1.
-            if abs(r_apo_stop - (c.R_EARTH + init.ALT_DESIRED)) < epsilon:
+            epsilon = 100   # meters
+            diff = abs(r_apo_stop - (c.R_EARTH + init.ALT_DESIRED))
+            if diff < epsilon:
                 
-                # Calculate delta v to circularize orbit
+                # ----- Calculate delta v -----
                 r_desired = c.R_EARTH + init.ALT_DESIRED
                 v_desired = np.sqrt(c.MU_EARTH / r_desired)
                 
                 # Get velocity at apogee
                 v_apo = np.sqrt(c.MU_EARTH * a_stop * (1 - e_stop**2)) / r_apo_stop
                 # v_apo = np.sqrt(c.MU_EARTH * ((2. / r_apo_stop) - (1. / a_stop)))
+                # ---> Josh checked, same result so both formulas are correct
 
-                # Calculate delta v
                 delta_v = np.abs(v_apo - v_desired)
-                
-                return time_steps_simulation, data, alt_stop, delta_v
+
+                # ----- Calculate total propellant required -----
+                m_propellant_left = sol_2.y[4, -1] - (par_roc.M_STRUCTURE_2 + par_roc.M_PAYLOAD)
+                m_propellant_used = par_roc.M_PROP_2 - m_propellant_left
+                m_propellant_required = sol_2.y[4, -1] * (1 - np.exp(-delta_v / (c.G0 * par_roc.ISP_2)))
+
+                # Check if the propellant required is less than the propellant left
+                if m_propellant_required < m_propellant_left:
+                    m_propellant_total_used_2nd_stage = m_propellant_used + m_propellant_required
+                else:
+                    m_propellant_total_used_2nd_stage = 999999999.
+
+                # Print masses for debugging
+                print("\n\n")
+                print("Propellant left: \t\t\t", m_propellant_left)
+                print("Propellant used: \t\t\t", m_propellant_used)
+                print("Propellant required by circularization: ", m_propellant_required)
+                print("Total propellant used: \t\t\t", m_propellant_total_used_2nd_stage)
+                print("\n")
+
+                return time_steps_simulation, data, alt_stop, delta_v, m_propellant_total_used_2nd_stage
+   
             else:
-                return time_steps_simulation, data, None, 9999999.0
+                return time_steps_simulation, data, None, 9999999.0, 9999999.0
 
         return time_steps_simulation, data
     
@@ -678,4 +699,3 @@ def run(ss_throttle, initial_kick_angle):
         time_steps_simulation = np.concatenate((sol_1.t, sol_2.t, sol_3.t))
         
         return time_steps_simulation, data
-
