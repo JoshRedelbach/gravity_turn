@@ -3,7 +3,7 @@
 =============================================== """
 
 import numpy as np
-from scipy.optimize import bisect
+from scipy.optimize import bisect, minimize
 from components.rocket import run
 
 import components.constants as c
@@ -15,12 +15,33 @@ import components.rocket as rocket
 # =======================================================
 
 def kick_angle_objective(kick_angle, throttle):
+    """
+    Objective function to find the initial kick angle for the gravity turn.
+    
+    Input:
+        - kick angle: initial kick angle; [rad]
+        - throttle: throttle setting for the second stage
+    
+    Output:
+        - last_gamma: flight path angle at the end of the simulation; [rad]
+    """
     time, data = run(throttle, kick_angle)
-    last_gamma = data[3,-1]
+    last_gamma = data[3, -1]
     return last_gamma
 
 def find_initial_kick_angle(throttle):
-    return bisect(kick_angle_objective, -np.deg2rad(60), -np.deg2rad(0.1), xtol=1e-7, args=(throttle,), maxiter=1000)
+    """
+    Finds the initial kick angle for the gravity turn using a bounded optimization method.
+    
+    Input:
+        - throttle: throttle setting for the second stage
+    
+    Output:
+        - initial kick angle: initial kick angle; [rad]
+    """
+    bounds = [(-np.deg2rad(90), -np.deg2rad(0.1))]
+    result = minimize(lambda x: abs(kick_angle_objective(x[0], throttle)), x0=[-np.deg2rad(10)], bounds=bounds, tol=1e-7)
+    return result.x[0]
 
 def second_throttle_objective(throttle):
     print("----------------------------")
@@ -28,6 +49,9 @@ def second_throttle_objective(throttle):
     INITIAL_KICK_ANGLE = find_initial_kick_angle(throttle)
     time, data = run(throttle, INITIAL_KICK_ANGLE)
     last_radius = data[1, -1]
+    
+    # Calculate the maximum altitude reached during the simulation
+    max_radius = np.max(data[1, :])
     
     last_gamma = data[3,-1]
     # print("Initial conditions: ", data[:,0])
@@ -39,16 +63,16 @@ def second_throttle_objective(throttle):
     print("Perigee: ", r_peri - c.R_EARTH, "m")
     print("Apogee: ", r_apo - c.R_EARTH, "m")
     print("Eccentricity: ", e)
-    print("Altitude: ", (last_radius - c.R_EARTH)/1000, "km")
+    print("Last Altitude: ", (last_radius - c.R_EARTH)/1000, "km")
+    print("Max Altitude: ", (max_radius - c.R_EARTH)/1000, "km")
     r_desired = c.R_EARTH + par_sim.ALT_DESIRED
     v_desired = np.sqrt(c.MU_EARTH / r_desired)
     print("delta_Velocity: ", data[2, -1] - v_desired, "m/s")
-    print(last_radius - c.R_EARTH - par_sim.ALT_DESIRED)
     
-    return last_radius - c.R_EARTH - par_sim.ALT_DESIRED
+    return max_radius - c.R_EARTH - par_sim.ALT_DESIRED
 
 def find_throttle():
-    return bisect(second_throttle_objective, 2, 0.3, xtol=1e-6, maxiter=500)
+    return bisect(second_throttle_objective, 0.6, 2, xtol=1e-6, maxiter=500)
 
 
 

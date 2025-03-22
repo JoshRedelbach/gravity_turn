@@ -18,20 +18,20 @@ par_roc = select_rocket(init.LV)  # Replace 'MK1' with the name of your desired 
 # Interrupt functions for simulation
 #===================================================
 
-def interrupt_radius_check(t, y, ss_throttle, initial_kick_angle):
-    """
-    Returns zero, if the current radius exceeds the radius of the desired.
+# def interrupt_radius_check(t, y, ss_throttle, initial_kick_angle):
+#     """
+#     Returns zero, if the current radius exceeds the radius of the desired.
     
-    Input:
-        - t: current time since launch; [s]
-        - y: current state vector
-    """
-    margin = 50e3
-    r = y[1]
-    if r > (init.ALT_DESIRED + c.R_EARTH + margin):
-        #print("Interrupt Radius Check happened at time ", t)
-        return 0
-    return 1
+#     Input:
+#         - t: current time since launch; [s]
+#         - y: current state vector
+#     """
+#     margin = 200e3
+#     r = y[1]
+#     if r > (init.ALT_DESIRED + c.R_EARTH + margin):
+#         #print("Interrupt Radius Check happened at time ", t)
+#         return 0
+#     return 1
 
 
 def interrupt_stage_separation(t, y, ss_throttle, initial_kick_angle):
@@ -519,9 +519,9 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, stage_2
     t_eval = np.arange(init_time, init_time + time_stamp + init.TIME_STEP, init.TIME_STEP)
 
     if stage_1_flag:
-        interrupt_list = [interrupt_radius_check, interrupt_stage_separation, interrupt_ground_collision, interrupt_velocity_exceeded]
+        interrupt_list = [interrupt_stage_separation, interrupt_ground_collision, interrupt_velocity_exceeded]
     elif stage_2_flag:
-        interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_ground_collision, interrupt_velocity_exceeded]
+        interrupt_list = [interrupt_stage_2_burnt, interrupt_ground_collision, interrupt_velocity_exceeded]
     else:
         interrupt_list = [interrupt_ground_collision]
     
@@ -569,7 +569,7 @@ def run(ss_throttle, initial_kick_angle):
     initial_state_1 = [0., c.R_EARTH, 0., np.deg2rad(90.), initial_mass, 0, 0, 0]  # [s, r, v, gamma, m, lat, lon, ceta]
 
     # Define time of simulation 1
-    time_1 = 500.   #<------TODO
+    time_1 = 2000.   #<------TODO
 
     # Call simulation for stage 1
     sol_1 = simulate_trajectory(0, time_1, initial_state_1, True, False, ss_throttle, initial_kick_angle)
@@ -587,7 +587,7 @@ def run(ss_throttle, initial_kick_angle):
     
     # Define time of simulation 2
     init_time_2 = sol_1.t[-1]
-    time_2 = 500.   #<------TODO
+    time_2 = 4000.   #<------TODO
     
     # Call simulation for stage 1
     #print("Second Simulation started!")
@@ -649,7 +649,7 @@ def run_full(ss_throttle, initial_kick_angle):
     
     # Define time of simulation 2
     init_time_2 = sol_1.t[-1]
-    time_2 = 500.   #<------TODO
+    time_2 = 4000.   #<------TODO
     
     # Call simulation for stage 1
     print("Second Simulation started!")

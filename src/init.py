@@ -8,7 +8,7 @@ import numpy as np
 LV = 'MK1'                      # Launch Vehicle selected
 
 # -------------- Select Simulation Type ----------------
-SYM_TYPE = 1
+SYM_TYPE = 3
 """
     1 -> Single Run
     2 -> Single Run Full
@@ -43,9 +43,9 @@ LAUNCH_LON = np.deg2rad(0.)     # longitude of launch site; [rad]
 # Single Run specific parameters
 # ===================================================
 
-SS_THROTTLE = 0.35028862953186024     # Second Stage throttle 
+SS_THROTTLE = 0.1     # Second Stage throttle 
 
-INITIAL_KICK_ANGLE = np.deg2rad(-12.519898194074626)   # Initial kick angle [rad]
+INITIAL_KICK_ANGLE = np.deg2rad(-0.14120375053650797)   # Initial kick angle [rad]
 
 # ===================================================
 # Single Run  Full specific parameters
