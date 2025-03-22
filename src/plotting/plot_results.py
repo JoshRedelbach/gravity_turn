@@ -10,7 +10,7 @@ import init as par_sim
 import components.rocket as r
 
 
-def single_run(time_steps, data, initial_kick_angle):
+def single_run(time_steps, data, INITIAL_KICK_ANGLE):
     """
     Inputs:
         - time_steps: array of time steps (for the data array); [s]
@@ -33,14 +33,14 @@ def single_run(time_steps, data, initial_kick_angle):
     """
 
     # -------------- Prepare data --------------
-    h = (data[1] - c.r_earth) / 1000.       # altitude h; [km]
+    h = (data[1] - c.R_EARTH) / 1000.       # altitude h; [km]
     s = data[0] / 1000.                     # downtrack s; [km]
 
     q = []          # dynamic pressure; [Pa]
     for i in range(len(time_steps)):
         alt = h[i] * 1000
         v = data[2][i]
-        rho = c.rho0 * np.exp(-alt / c.H)
+        rho = c.RHO0 * np.exp(-alt / c.H)
         q.append(0.5 * rho * v**2)
     
     # Recreate angle of attack values
@@ -49,14 +49,14 @@ def single_run(time_steps, data, initial_kick_angle):
     for i, t in enumerate(time_steps):
         if t < r.time_kick_start:
             angle_of_attacks[i] = 0.0
-        elif t > (r.time_kick_start + par_sim.duration_initial_kick):
+        elif t > (r.time_kick_start + par_sim.DURATION_INITIAL_KICK):
             angle_of_attacks[i] = 0.0
-        elif t > (r.time_kick_start + (par_sim.duration_initial_kick / 2.)):
+        elif t > (r.time_kick_start + (par_sim.DURATION_INITIAL_KICK / 2.)):
             angle_rate = (t - (r.time_kick_start + r.time_raise)) / (r.time_raise)
-            angle_of_attacks[i] = initial_kick_angle * (1 - angle_rate)
+            angle_of_attacks[i] = INITIAL_KICK_ANGLE * (1 - angle_rate)
         else:
             angle_rate = (t - r.time_kick_start) / (r.time_raise)
-            angle_of_attacks[i] = initial_kick_angle * angle_rate
+            angle_of_attacks[i] = INITIAL_KICK_ANGLE * angle_rate
 
     # -------------- Plotting --------------
     fig1, axs1 = plt.subplots(2, 4, figsize=(15, 15))
@@ -118,4 +118,55 @@ def single_run(time_steps, data, initial_kick_angle):
     axs1[1, 3].grid()
 
     plt.tight_layout()
+    plt.show()
+    
+    
+    
+def plot_trajectory_xy(data):
+    """
+    Plots the rocket trajectory in x-y coordinates with Earth shown as a blue disk.
+    
+    Inputs:
+        - data: array of data points with the following structure:
+            * data[0]: downtrack s; [m]
+            * data[1]: current radius r from Earth's center; [m]
+    """
+
+    # -------------- Prepare data --------------
+    h = (data[1] - c.R_EARTH)       # altitude h; [m]
+    s = data[0]                     # downtrack s; [m]
+    
+    # Convert to cartesian coordinates
+    x, y = r.cartesian_coordinates(h, s)
+    x = x/1000.
+    y = y/1000.
+
+    # Create Earth representation (circular disk)
+    earth_radius_km = c.R_EARTH / 1000.0
+    earth = plt.Circle((0, 0), earth_radius_km, color='blue', zorder=1)
+
+    # Plot setup
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.set_facecolor("black")
+
+    # Plot trajectory
+    ax.plot(x, y, color="white", linewidth=1, label="Rocket Trajectory")
+    
+    # Show Earth
+    ax.add_patch(earth)
+
+    # Labels and aesthetics
+    ax.set_xlabel("Downtrack Distance (km)", color="white")
+    ax.set_ylabel("Altitude (km)", color="white")
+    ax.set_title("Rocket Trajectory", color="white")
+    ax.tick_params(colors='white')
+    ax.grid(color='gray', linestyle='--', linewidth=0.5)
+    ax.legend()
+
+    # Set limits to make sure Earth is fully visible
+    ax.set_xlim(min(x) - 1200, max(x) + 1200)  # Adjust margins around trajectory
+    ax.set_ylim(min(y) - 1200, max(y) + 1200)
+    ax.set_aspect('equal')  # Keep aspect ratio realistic
+
+    plt.savefig("rocket_trajectory.jpg", dpi=800, bbox_inches="tight", pad_inches=0)
     plt.show()

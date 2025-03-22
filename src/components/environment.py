@@ -7,7 +7,7 @@ import components.constants as c
 
 # -------------- Functions --------------
 
-def drag_force(v, alt, c_D, A, rho0=c.rho0, H=c.H):
+def drag_force(v, alt, C_D, A, RHO0=c.RHO0, H=c.H):
     """
     Function to get the norm of the atmospheric drag at certain height and speed.
     
@@ -16,21 +16,21 @@ def drag_force(v, alt, c_D, A, rho0=c.rho0, H=c.H):
     Input:
         - v: norm current velocity vector; [m/s]
         - alt: current altitude above Earth's surface; [m]
-        - c_D: drag coefficient; [no unit]
+        - C_D: drag coefficient; [no unit]
         - A: cross sectional area; [m^2]
-        - rho0: sea-level air density; [kg/m^3]
+        - RHO0: sea-level air density; [kg/m^3]
         - H: scale height of atmosphere; [m]
 
     Outputs:
         - drag: norm of drag force; [N]
     """
     
-    rho = rho0 * np.exp(-alt / H)
-    drag = 0.5 * c_D * rho * v**2 * A
+    rho = RHO0 * np.exp(-alt / H)
+    drag = 0.5 * C_D * rho * v**2 * A
     return drag
 
 
-def lift_force(v, alt, c_L, A, rho0=c.rho0, H=c.H):
+def lift_force(v, alt, C_L, A, RHO0=c.RHO0, H=c.H):
     """
     Function to get the norm of the lift at certain height and speed.
     
@@ -39,21 +39,21 @@ def lift_force(v, alt, c_L, A, rho0=c.rho0, H=c.H):
     Input:
         - v: norm current velocity vector; [m/s]
         - alt: current altitude above Earth's surface; [m]
-        - c_L: lift coefficient; [no unit]
+        - C_L: lift coefficient; [no unit]
         - A: cross sectional area; [m^2]
-        - rho0: sea-level air density; [kg/m^3]
+        - RHO0: sea-level air density; [kg/m^3]
         - H: scale height of atmosphere; [m]
 
     Outputs:
         - lift: norm of lift force; [N]
     """
     
-    rho = rho0 * np.exp(-alt / H)
-    drag = 0.5 * c_L * rho * v**2 * A
+    rho = RHO0 * np.exp(-alt / H)
+    drag = 0.5 * C_L * rho * v**2 * A
     return drag
 
 
-def accel_grav(r, mu=c.mu_earth):
+def accel_grav(r, mu=c.MU_EARTH):
     """
     Function to get the acceleration due to gravity at certain height.
     
