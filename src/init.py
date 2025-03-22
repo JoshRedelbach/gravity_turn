@@ -42,6 +42,10 @@ LAUNCH_LAT = np.deg2rad(0.)     # latitude of launch site; [rad]
 LAUNCH_LON = np.deg2rad(0.)     # longitude of launch site; [rad]
 
 
+# -------------- Optimization --------------
+ALPHA_LOWEST = -np.deg2rad(90)
+ALPHA_HIGHEST = -np.deg2rad(0.1)
+
 
 # ===================================================
 # Single Run specific parameters
