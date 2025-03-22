@@ -1,12 +1,11 @@
 """ ===============================================
-            SINGLE RUN FULL SIMULATION 
+              COASTING SINGLE BURN
 =============================================== """
 
-import init
 import components.rocket as rocket
 import plotting.plot_results as plot_results
 import components.constants as c
-import numpy as np
+import init
 
 
 def plot(time, data, initial_kick_angle):
@@ -25,8 +24,13 @@ def plot(time, data, initial_kick_angle):
     plot_results.single_run(time, data, initial_kick_angle)
     plot_results.plot_trajectory_xy(data)
 
-    
+
 def execute():
-    time, data = rocket.run_full(init.SS_THROTTLE, init.INITIAL_KICK_ANGLE)
+    time, data, alt_stopped, delta_v = rocket.run(init.SS_THROTTLE, init.INITIAL_KICK_ANGLE)
+    print("\n\nAltitude stopped: ", alt_stopped)
+    print("Delta V: ", delta_v)
+    print("\n\n")
     plot(time, data, init.INITIAL_KICK_ANGLE)
+
+
     

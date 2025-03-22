@@ -8,11 +8,13 @@ import numpy as np
 LV = 'MK1'                      # Launch Vehicle selected
 
 # -------------- Select Simulation Type ----------------
-SYM_TYPE = 2
+SYM_TYPE = 4
 """
     1 -> Single Run
     2 -> Single Run Full
-    3 -> Direct Orbit Injection No Coast
+    3 -> Optimization Direct Orbit Injection No Coast
+    4 -> Optimization Orbit Injection With Coasting Single Burn
+    5 -> Optimization Orbit Injection With Coasting Double Burn
 """
 
 # ===================================================
@@ -25,7 +27,7 @@ DURATION_INITIAL_KICK = 20.     # duration of gravity turn; [s]
 
 
 # -------------- Time Step --------------
-TIME_STEP = 0.0001                 # step size for integration; [s]
+TIME_STEP = 0.001                 # step size for integration; [s]
 
 
 # -------------- Desired Orbit --------------
@@ -43,9 +45,17 @@ LAUNCH_LON = np.deg2rad(0.)     # longitude of launch site; [rad]
 # Single Run specific parameters
 # ===================================================
 
-SS_THROTTLE = 0.35028862953186024     # Second Stage throttle 
+# SS_THROTTLE = 0.35028862953186024     # Second Stage throttle
+SS_THROTTLE = 1.0     # Second Stage throttle 
 
-INITIAL_KICK_ANGLE = np.deg2rad(-12.519898194074626)   # Initial kick angle [rad]
+INITIAL_KICK_ANGLE = np.deg2rad(-15)   # Initial kick angle [rad]
+
+
+# ===================================================
+# Single Run Full specific parameters
+# ===================================================
+DURATION_AFTER_SIMULATION = 1000.  # duration of simulation after reaching desired orbit; [s]
+
 
 
 # ===================================================
@@ -57,7 +67,7 @@ INITIAL_KICK_ANGLE = np.deg2rad(-12.519898194074626)   # Initial kick angle [rad
 # ===================================================
 # Orbit Injection With Coasting specific parameters
 # ===================================================
-ALT_NO_ATMOSPHERE = 70e3        # altitude where atmosphere can be neglected; [m]
+ALT_NO_ATMOSPHERE = 65e3        # altitude where atmosphere can be neglected; [m]
 
 
 

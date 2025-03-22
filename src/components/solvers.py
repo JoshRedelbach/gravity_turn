@@ -15,7 +15,7 @@ import components.rocket as rocket
 # =======================================================
 
 def kick_angle_objective(kick_angle, throttle):
-    time, data = run(throttle, kick_angle)
+    time, data, = run(throttle, kick_angle)
     last_gamma = data[3,-1]
     return last_gamma
 
