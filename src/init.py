@@ -56,13 +56,6 @@ INITIAL_KICK_ANGLE = np.deg2rad(-15)   # Initial kick angle [rad]
 # ===================================================
 DURATION_AFTER_SIMULATION = 1000.  # duration of simulation after reaching desired orbit; [s]
 
-
-# ===================================================
-# Single Run  Full specific parameters
-# ===================================================
-
-DURATION_AFTER_SS_CUTOFF = 1000.  # duration after second stage cutoff; [s]
-
 # ===================================================
 # Direct Orbit Injection No Coast specific parameters
 # ===================================================

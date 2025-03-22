@@ -18,9 +18,9 @@ par_roc = select_rocket(init.LV)  # Replace 'MK1' with the name of your desired 
 # Interrupt functions for simulation
 #===================================================
 
-# def interrupt_radius_check(t, y, ss_throttle, initial_kick_angle):
-#     """
-#     Returns zero, if the current radius exceeds the radius of the desired.
+def interrupt_radius_check(t, y, ss_throttle, initial_kick_angle):
+    """
+    Returns zero, if the current radius exceeds the radius of the desired.
     
     Input:
         - t: current time since launch; [s]
