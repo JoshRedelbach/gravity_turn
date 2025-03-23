@@ -1,5 +1,5 @@
 """ ===============================================
-              COASTING SINGLE BURN
+              COASTING DOUBLE BURN
 =============================================== """
 
 import components.rocket as rocket
@@ -30,7 +30,7 @@ def plot(time, data, initial_kick_angle):
 
 def execute():
 
-    global SINGLE_BURN_FULL_SIMULATION
+    ,  
     SINGLE_BURN_FULL_SIMULATION = False
 
     kick_angle = solvers.find_initial_kick_angle_coast_single_burn()
