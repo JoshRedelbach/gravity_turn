@@ -1,5 +1,5 @@
 """ ===============================================
-              COASTING SINGLE BURN
+              COASTING DOUBLE BURN
 =============================================== """
 
 import components.rocket as rocket
@@ -10,6 +10,7 @@ import numpy as np
 
 
 def plot(time, data, initial_kick_angle):
+
     a, e, r_apo, r_peri, _ = rocket.get_orbital_elements(data[1,-1], data[2,-1], data[3,-1])
     
     print("Final orbital elements:")
@@ -30,15 +31,21 @@ def plot(time, data, initial_kick_angle):
 
 def execute():
 
-    global SINGLE_BURN_FULL_SIMULATION
-    SINGLE_BURN_FULL_SIMULATION = False
-    kick_angle = solvers.find_initial_kick_angle_coast_single_burn()
+    global DOUBLE_BURN_FULL_SIMULATION
+    DOUBLE_BURN_FULL_SIMULATION = False
+
+    kick_angle = solvers.find_initial_kick_angle_coast_double_burn()
+
     print("\nResults:")
-    print("\t* Optimal Kick angle: \t\t", np.rad2deg(kick_angle), "deg")  
+    print("\t* Optimal Kick angle: \t\t\t", np.rad2deg(kick_angle), "deg")
+    print("\t* Optimal altitude to stop burning:\t", rocket.double_burn_altitude/1000., "km")
+    print("\t* Optimal time to stop burning:\t", rocket.double_burn_time, "s")
+    print("\t* Optimal delta-v-total:\t\t", rocket.double_burn_delta_v, "m/s")
+    print("\t* Optimal delta-v-1:\t\t\t", rocket.double_burn_delta_v_1, "m/s")
+    print("\t* Optimal delta-v-2:\t\t\t", rocket.double_burn_delta_v_2, "m/s")
 
+    DOUBLE_BURN_FULL_SIMULATION = True
 
-    SINGLE_BURN_FULL_SIMULATION = True
-
-    time, data, alt_stopped, delta_v, m_propellant_total_used_2nd_stage = rocket.run(1.0, kick_angle)
+    time, data = rocket.run(1.0, kick_angle)
 
     plot(time, data, kick_angle)
