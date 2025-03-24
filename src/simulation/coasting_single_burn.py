@@ -37,9 +37,8 @@ def execute():
 
     global SINGLE_BURN_FULL_SIMULATION
     SINGLE_BURN_FULL_SIMULATION = False
-    kick_angle = solvers.find_initial_kick_angle_coast_single_burn()
-
-    # kick_angle = np.deg2rad(-16.45500109591429)
+    #kick_angle = solvers.find_initial_kick_angle_coast_single_burn()
+    kick_angle = np.deg2rad(-16.42403343739358)
     print("Kick angle: ", np.rad2deg(kick_angle))  
 
     SINGLE_BURN_FULL_SIMULATION = True

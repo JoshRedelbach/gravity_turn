@@ -636,7 +636,7 @@ def run(ss_throttle, initial_kick_angle):
             # Calculate orbital elements at stop
             a_stop, e_stop, r_apo_stop, r_peri_stop, orbit_period_stop = get_orbital_elements(r_stop, v_stop, gamma_stop)
 
-            epsilon = 100   # meters
+            epsilon = (c.R_EARTH + init.ALT_DESIRED)*0.002   # meters
             diff = abs(r_apo_stop - (c.R_EARTH + init.ALT_DESIRED))
             if diff < epsilon:
                 
