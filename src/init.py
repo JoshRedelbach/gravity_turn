@@ -29,7 +29,7 @@ DURATION_INITIAL_KICK = 20.     # duration of gravity turn; [s]
 
 
 # -------------- Time Step --------------
-TIME_STEP = 0.001                 # step size for integration; [s]
+TIME_STEP = 0.01                 # step size for integration; [s]
 
 
 # -------------- Desired Orbit --------------
@@ -59,7 +59,7 @@ INITIAL_KICK_ANGLE = np.deg2rad(-15)   # Initial kick angle [rad]
 # ===================================================
 # Single Run Full specific parameters
 # ===================================================
-DURATION_AFTER_SIMULATION = 1000.  # duration of simulation after reaching desired orbit; [s]
+DURATION_AFTER_SIMULATION = 5000.  # duration of simulation after reaching desired orbit; [s]
 
 
 

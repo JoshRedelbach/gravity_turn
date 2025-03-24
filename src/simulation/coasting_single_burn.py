@@ -32,10 +32,10 @@ def execute():
 
     global SINGLE_BURN_FULL_SIMULATION
     SINGLE_BURN_FULL_SIMULATION = False
-
     kick_angle = solvers.find_initial_kick_angle_coast_single_burn()
     print("\nResults:")
     print("\t* Optimal Kick angle: \t\t", np.rad2deg(kick_angle), "deg")  
+
 
     SINGLE_BURN_FULL_SIMULATION = True
 

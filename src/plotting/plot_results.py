@@ -141,16 +141,16 @@ def plot_trajectory_xy(data):
     x = x/1000.
     y = y/1000.
 
-    # Create Earth representation (circular disk)
-    earth_radius_km = c.R_EARTH / 1000.0
-    earth = plt.Circle((0, 0), earth_radius_km, color='blue', zorder=1)
-
     # Plot setup
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_facecolor("black")
 
     # Plot trajectory
     ax.plot(x, y, color="white", linewidth=1, label="Rocket Trajectory")
+    
+    # Create Earth representation (circular disk)
+    earth_radius_km = c.R_EARTH / 1000.0
+    earth = plt.Circle((0, 0), earth_radius_km, color='blue', zorder=1)
     
     # Show Earth
     ax.add_patch(earth)
@@ -168,5 +168,5 @@ def plot_trajectory_xy(data):
     ax.set_ylim(min(y) - 1200, max(y) + 1200)
     ax.set_aspect('equal')  # Keep aspect ratio realistic
 
-    plt.savefig("rocket_trajectory.jpg", dpi=800, bbox_inches="tight", pad_inches=0)
+    plt.savefig("rocket_trajectory.jpg", dpi=1000, bbox_inches="tight", pad_inches=0)
     plt.show()
