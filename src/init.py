@@ -33,7 +33,8 @@ TIME_STEP = 0.001                 # step size for integration; [s]
 
 
 # -------------- Desired Orbit --------------
-ALT_DESIRED = 400e3             # altitude of desired orbit; [m]
+# ALT_DESIRED = 35786e3             # altitude of desired orbit; [m]
+ALT_DESIRED = 300e3             # altitude of desired orbit; [m]
 INC_DESIRED = np.deg2rad(0.)    # inclination of desired orbit; [rad]
 
 
@@ -60,10 +61,11 @@ INITIAL_KICK_ANGLE = np.deg2rad(-15)   # Initial kick angle [rad]
 # ===================================================
 DURATION_AFTER_SIMULATION = 1000.  # duration of simulation after reaching desired orbit; [s]
 
+
+
 # ===================================================
 # Direct Orbit Injection No Coast specific parameters
 # ===================================================
-
 
 
 # ===================================================
