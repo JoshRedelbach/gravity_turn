@@ -710,7 +710,7 @@ def run(ss_throttle, initial_kick_angle):
             # Calculate orbital elements at stop
             a_stop, e_stop, r_apo_stop, r_peri_stop, orbit_period_stop = get_orbital_elements(r_stop, v_stop, gamma_stop)
 
-            epsilon = (c.R_EARTH + init.ALT_DESIRED)*0.002   # meters
+            epsilon = (c.R_EARTH + init.ALT_DESIRED) * 0.002   # meters
             diff = abs(r_apo_stop - (c.R_EARTH + init.ALT_DESIRED))
 
             if diff < epsilon:
@@ -780,7 +780,7 @@ def run(ss_throttle, initial_kick_angle):
 
                     # Calculate time needed to perform the delta v burn
                     burn_time_delta_v = solvers.calculate_burn_time(initial_state_4[4], delta_v)
-                    print("\n\nBurn time delta-v:", burn_time_delta_v)
+                    print("Burn time delta-v:", burn_time_delta_v, "\n")
 
                     initial_state_4[4] -= m_propellant_required
 

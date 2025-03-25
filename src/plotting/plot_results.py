@@ -32,21 +32,25 @@ def single_run(time_steps, data, INITIAL_KICK_ANGLE):
         - angle of attack over time
     """
 
+    # Reduce data array
+    data_reduced = data[:, ::10]
+    time_reduced = time_steps[::10]
+
     # -------------- Prepare data --------------
-    h = (data[1] - c.R_EARTH) / 1000.       # altitude h; [km]
-    s = data[0] / 1000.                     # downtrack s; [km]
+    h = (data_reduced[1] - c.R_EARTH) / 1000.       # altitude h; [km]
+    s = data_reduced[0] / 1000.                     # downtrack s; [km]
 
     q = []          # dynamic pressure; [Pa]
-    for i in range(len(time_steps)):
+    for i in range(len(time_reduced)):
         alt = h[i] * 1000
-        v = data[2][i]
+        v = data_reduced[2][i]
         rho = c.RHO0 * np.exp(-alt / c.H)
         q.append(0.5 * rho * v**2)
     
     # Recreate angle of attack values
     # Initialize empty list with length of t
-    angle_of_attacks = [0.0] * len(time_steps)
-    for i, t in enumerate(time_steps):
+    angle_of_attacks = [0.0] * len(time_reduced)
+    for i, t in enumerate(time_reduced):
         if t < r.time_kick_start:
             angle_of_attacks[i] = 0.0
         elif t > (r.time_kick_start + par_sim.DURATION_INITIAL_KICK):
@@ -69,49 +73,49 @@ def single_run(time_steps, data, INITIAL_KICK_ANGLE):
     axs1[0, 0].grid()
 
     # Position plot: downtrack over time
-    axs1[0, 1].plot(time_steps, s)
+    axs1[0, 1].plot(time_reduced, s)
     axs1[0, 1].set_xlabel('time [s]')
     axs1[0, 1].set_ylabel('downtrack s [km]')
     axs1[0, 1].set_title('Downtrack over Time')
     axs1[0, 1].grid()
 
     # Position plot: y over time
-    axs1[0, 2].plot(time_steps, h)
+    axs1[0, 2].plot(time_reduced, h)
     axs1[0, 2].set_xlabel('time [s]')
     axs1[0, 2].set_ylabel('altitude h [km]')
     axs1[0, 2].set_title('Altitude over Time')
     axs1[0, 2].grid()
 
     # Velocity plot
-    axs1[0, 3].plot(time_steps, data[2])
+    axs1[0, 3].plot(time_reduced, data_reduced[2])
     axs1[0, 3].set_xlabel('time [s]')
     axs1[0, 3].set_ylabel('v [m/s]')
     axs1[0, 3].set_title('Velocity Norm over Time')
     axs1[0, 3].grid()
 
     # Flight path angle plot
-    axs1[1, 0].plot(time_steps, np.rad2deg(data[3]))
+    axs1[1, 0].plot(time_reduced, np.rad2deg(data_reduced[3]))
     axs1[1, 0].set_xlabel('time [s]')
     axs1[1, 0].set_ylabel('gamma [rad]')
     axs1[1, 0].set_title('Flight Path Angle over Time')
     axs1[1, 0].grid()
 
     # Mass plot
-    axs1[1, 1].plot(time_steps, data[4])
+    axs1[1, 1].plot(time_reduced, data_reduced[4])
     axs1[1, 1].set_xlabel('time [s]')
     axs1[1, 1].set_ylabel('mass [kg]')
     axs1[1, 1].set_title('Mass of Rocket over Time')
     axs1[1, 1].grid()
 
     # Dynamic Pressure plot
-    axs1[1, 2].plot(time_steps, q)
+    axs1[1, 2].plot(time_reduced, q)
     axs1[1, 2].set_xlabel('time [s]')
     axs1[1, 2].set_ylabel('q [Pa]')
     axs1[1, 2].set_title('Dynamic Pressure over Time')
     axs1[1, 2].grid()
 
     # Angle of Attack plot
-    axs1[1, 3].plot(time_steps, np.rad2deg(angle_of_attacks))
+    axs1[1, 3].plot(time_reduced, np.rad2deg(angle_of_attacks))
     axs1[1, 3].set_xlabel('time [s]')
     axs1[1, 3].set_ylabel('angle of attack [deg]')
     axs1[1, 3].set_title('Angle of Attack over Time')
@@ -131,10 +135,12 @@ def plot_trajectory_xy(data):
             * data[0]: downtrack s; [m]
             * data[1]: current radius r from Earth's center; [m]
     """
+    # Reduce data_reduced array
+    data_reduced = data[:, ::10]
 
     # -------------- Prepare data --------------
-    h = (data[1] - c.R_EARTH)       # altitude h; [m]
-    s = data[0]                     # downtrack s; [m]
+    h = (data_reduced[1] - c.R_EARTH)       # altitude h; [m]
+    s = data_reduced[0]                     # downtrack s; [m]
     
     # Convert to cartesian coordinates
     x, y = r.cartesian_coordinates(h, s)
