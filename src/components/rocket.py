@@ -13,7 +13,7 @@ import simulation.coasting_single_burn as coasting_single_burn
 import simulation.coasting_double_burn as coasting_double_burn
 
 # Selected Launch Vehicle
-par_roc = select_rocket(init.LV)  # Replace 'MK1' with the name of your desired rocket module
+par_roc = select_rocket(init.LV)
 
 #===================================================
 # Interrupt functions for simulation
@@ -32,7 +32,7 @@ def interrupt_radius_check(t, y, ss_throttle, initial_kick_angle):
     margin = 50e3
     r = y[1]
     if r > (init.ALT_DESIRED + c.R_EARTH + margin):
-        # print("Interrupt Radius Check happened at time ", t)
+        if init.INTERRUPTS_PRINT: print("Interrupt Radius Check happened at time ", t)
         return 0
     return 1
 
@@ -52,7 +52,7 @@ def interrupt_stage_separation(t, y, ss_throttle, initial_kick_angle):
 
     if main_engine_cutoff:
         if t >= (time_main_engine_cutoff + par_roc.DELAY_TIME_STAGE_SEPARATION):
-            # print("Interrupt Stage Separation happened at time ", t)
+            if init.INTERRUPTS_PRINT: print("Interrupt Stage Separation happened at time ", t)
             return 0
     return 1
 
@@ -94,7 +94,7 @@ def interrupt_stage_2_burnt(t, y, ss_throttle, initial_kick_angle):
     """
     m = y[4]
     if m <= (par_roc.M_PAYLOAD + par_roc.M_STRUCTURE_2):
-        # print("Interrupt Stage 2 Burnt happened at time ", t)
+        if init.INTERRUPTS_PRINT: print("Interrupt Stage 2 Burnt happened at time ", t)
         return 0
     return 1
 
@@ -111,7 +111,7 @@ def interrupt_ground_collision(t, y, ss_throttle, initial_kick_angle):
     """
     r = y[1]
     if r < c.R_EARTH - 1e3:
-        # print("Interrupt Earth Collision happened at time ", t)
+        if init.INTERRUPTS_PRINT: print("Interrupt Earth Collision happened at time ", t)
         return 0
     return 1
 
@@ -136,7 +136,7 @@ def interrupt_velocity_exceeded(t, y, ss_throttle, initial_kick_angle):
     return v - v_desired
 
 
-def interrupt_single_burn(t, y, ss_throttle, initial_kick_angle):
+def interrupt_single_burn_traj(t, y, ss_throttle, initial_kick_angle):
     """
     Performed as soon as the rocket reached the altitude where the atmosphere can be neglected.
     Checks if the current apogee is within a certain margin close to the desired altitude (return 0) or not (return 1) if the rocket would stop burnig at the current time stamp.
@@ -162,6 +162,26 @@ def interrupt_single_burn(t, y, ss_throttle, initial_kick_angle):
         
         return diff
     
+
+def interrupt_horizontal_check(t, y, ss_throttle, initial_kick_angle):
+    """
+    Checks if the rocket reached horizontal flight direction.
+    
+    Input:
+        - t: current time since launch; [s]
+        - y: current state vector
+        - ss_throttle: throttle of the second stage
+        - initial_kick_angle: angle of attack for the initial kick
+    """
+    gamma = y[3]
+    epsilon = np.deg2rad(0.01)
+    
+    if gamma < epsilon:
+        if init.INTERRUPTS_PRINT: print("Interrupt Horizontal Flight Direction happened at time ", t)
+        return 0
+    return 1
+
+    
 #===================================================
 # Event functions
 #===================================================
@@ -185,6 +205,8 @@ def event_main_engine_cutoff(t, y):
         main_engine_cutoff = True
         time_main_engine_cutoff = t
 
+        if init.EVENTS_PRINT: print("Main engine cutoff at t = ", t)
+
     return
 
 
@@ -200,6 +222,8 @@ def event_second_engine_ignition(t):
     
     if t >= (par_roc.DELAY_TIME_SECOND_ENGINE_IGNITION + time_main_engine_cutoff):
         second_engine_ignition = True
+        
+        if init.EVENTS_PRINT: print("Second engine ignited at t = ", t)
         
     return
 
@@ -240,7 +264,7 @@ def get_orbital_elements(r, v_inertial, gamma_inertial, mu = c.MU_EARTH):
     e = (1 - (r*v_inertial*np.cos(gamma_inertial))**2 / (mu*a))**0.5
     r_apo = a * (1+e)
     r_peri = a * (1-e)
-    orbit_period = 2 * np.pi * (a**1.5) / (mu**0.5)
+    orbit_period = 2 * np.pi * (np.pow(a, 1.5)) / (np.pow(mu, 0.5))
     
     return a, e, r_apo, r_peri, orbit_period
     
@@ -291,12 +315,12 @@ def pitch_programm_linear(t, initial_kick_angle):
 
     if time_kick_start == None:                                     # check if kick has started
         time_kick_start = t
-        #print("\nInitial kick started at t = ", t)
+        if init.EVENTS_PRINT: print("\nInitial kick started at t = ", t)
         return 0.0
     
     elif t > (time_kick_start + init.DURATION_INITIAL_KICK):     # check if kick has ended
         kick_performed = True
-        #print("\nInitial kick ended at t = ", t)
+        if init.EVENTS_PRINT: print("\nInitial kick ended at t = ", t)
         return 0.0
     
     else:
@@ -341,12 +365,6 @@ def compute_double_burn_delta_v(state):
     # Compute delta-v for Hohman transfer
     delta_v_total, delta_v1, delta_v2 = solvers.hohman_transfer(v_apo, r_apo, r_desired)
 
-    # NOTE: CHECK TO CIRCUMVENT SCENARIO WHERE ONE DELTA-V IS TOO HIGH
-    max_delta_v_per_burn = delta_v_total / 2.
-
-    # if delta_v1 > max_delta_v_per_burn or delta_v2 > max_delta_v_per_burn:
-    #     return 99999999., 99999999., 99999999.
-
     return delta_v_total, delta_v1, delta_v2
 
 
@@ -359,7 +377,7 @@ def check_dual_burn_prop_used(delta_v_total, delta_v1, delta_v2, state, t):
         - state: current state vector of the rocket
         - t: current time since launch; [s]
     """
-    global double_burn_smallest_prop, double_burn_altitude, double_burn_time, double_burn_delta_v, double_burn_delta_v_1, double_burn_delta_v_2
+    global double_burn_smallest_prop
 
     # Calculate current total propellant used of second stage
     m_propellant_left = state[4] - (par_roc.M_STRUCTURE_2 + par_roc.M_PAYLOAD)
@@ -372,13 +390,17 @@ def check_dual_burn_prop_used(delta_v_total, delta_v1, delta_v2, state, t):
     else:
         m_propellant_total_used_2nd_stage = 999999999.
 
+    # Update best run for current kick angle if necessary
     if m_propellant_total_used_2nd_stage < double_burn_smallest_prop:
-        double_burn_delta_v = delta_v_total
-        double_burn_altitude = state[1] - c.R_EARTH
-        double_burn_time = t
         double_burn_smallest_prop = m_propellant_total_used_2nd_stage
-        double_burn_delta_v_1 = delta_v1
-        double_burn_delta_v_2 = delta_v2
+
+    # Save results of best run of whole optimization if necessary
+    if m_propellant_total_used_2nd_stage < coasting_double_burn.double_burn_smallest_prop_global:
+        coasting_double_burn.double_burn_altitude_global = state[1] - c.R_EARTH
+        coasting_double_burn.double_burn_time_global = t
+        coasting_double_burn.double_burn_smallest_prop_global = m_propellant_total_used_2nd_stage
+        coasting_double_burn.double_burn_delta_v_1_global = delta_v1
+        coasting_double_burn.double_burn_delta_v_2_global = delta_v2
 
 
 #===================================================
@@ -407,7 +429,7 @@ def rocket_dynamics(t, state, ss_throttle, initial_kick_angle):
     Output:
         - derivatives of the state vector
     """
-    global time_kick_start, kick_performed, main_engine_cutoff
+    global time_kick_start, kick_performed, main_engine_cutoff, flag_falling_single_burn
 
     # Get state components
     s, r, v, gamma, m, lat, lon, ceta = state
@@ -440,13 +462,41 @@ def rocket_dynamics(t, state, ss_throttle, initial_kick_angle):
     state_differentiated = diff_eom_base(s, r, v, gamma, m, F_L, F_D, F_T, a_grav, alpha, Isp)
     # state_differentiated = diff_eom_advanced(s, r, v, gamma, m, lat, lon, ceta, F_L, F_D, F_T, a_grav, alpha, Isp)
 
+    if time_kick_start == None:
+        state_differentiated[3] = 0.0
+
+    if state_differentiated[2] < 0:
+        flag_falling_single_burn = True
+
+    # DEBUGGING
+    # if t < 0.001:
+    #     print("\n")
+    #     print("Downtrack: ", state[0])
+    #     print("Radius: ", state[1])
+    #     print("Velocity: ", state[2])
+    #     print("Flight path angle: ", state[3])
+    #     print("Mass: ", state[4])
+    #     print("Downtrack Dot: ", state_differentiated[0])
+    #     print("Radius Dot: ", state_differentiated[1])
+    #     print("Velocity Dot: ", state_differentiated[2])
+    #     print("Flight path angle Dot: ", state_differentiated[3])
+    #     print("Mass Dot: ", state_differentiated[4])
+    #     print("a_grav", a_grav)
+    #     print("F_D", F_D)
+    #     print("F_T", F_T)
+    #     print("F_L", F_L)
+    #     print("alpha", alpha)
+    #     print("\n")
+
     # ---- Check for coasting phase double burn ----
     if init.SYM_TYPE == 5 and not(coasting_double_burn.DOUBLE_BURN_FULL_SIMULATION):
         if main_engine_cutoff and second_engine_ignition:
-            # Calculate delta-v for double burn
-            delta_v_total, delta_v1, delta_v2 = compute_double_burn_delta_v(state)
-            # Check if the current prop used is smaller than current smallest prop for a specific kick angle
-            check_dual_burn_prop_used(delta_v_total, delta_v1, delta_v2, state, t)
+            if state_differentiated[2] > 0:
+                # Calculate delta-v for double burn
+                delta_v_total, delta_v1, delta_v2 = compute_double_burn_delta_v(state)
+                if (delta_v1 < init.MAX_ACCEPTED_DELTA_V) and (delta_v2 < init.MAX_ACCEPTED_DELTA_V):
+                    # Check if the current prop used is smaller than current smallest prop for a specific kick angle
+                    check_dual_burn_prop_used(delta_v_total, delta_v1, delta_v2, state, t)
 
     return state_differentiated
 
@@ -607,8 +657,13 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, stage_2
         interrupt_list = [interrupt_stage_separation, interrupt_ground_collision, interrupt_velocity_exceeded]
     
     elif stage_2_flag:
-        if (init.SYM_TYPE == 4) or (init.SYM_TYPE == 5):
-            interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_ground_collision, interrupt_single_burn]
+        if (init.SYM_TYPE == 4):
+            interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_ground_collision, interrupt_single_burn_traj, interrupt_horizontal_check]
+        elif init.SYM_TYPE == 5 and not(coasting_double_burn.DOUBLE_BURN_FULL_SIMULATION):
+            interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_ground_collision, interrupt_single_burn_traj, interrupt_horizontal_check]
+        elif init.SYM_TYPE == 5 and (coasting_double_burn.DOUBLE_BURN_FULL_SIMULATION):
+            # interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_ground_collision, interrupt_velocity_exceeded]
+            interrupt_list = []
         else:
             interrupt_list = [interrupt_radius_check, interrupt_stage_2_burnt, interrupt_ground_collision, interrupt_velocity_exceeded]
 
@@ -629,7 +684,7 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, stage_2
 
 def run(ss_throttle, initial_kick_angle):
     
-    global time_kick_start, kick_performed, time_raise, main_engine_cutoff, second_engine_ignition, stage_2_burnt, time_main_engine_cutoff, second_stage_cutoff, double_burn_smallest_prop, double_burn_altitude, double_burn_time, double_burn_delta_v, double_burn_delta_v_1, double_burn_delta_v_2
+    global time_kick_start, kick_performed, time_raise, main_engine_cutoff, second_engine_ignition, stage_2_burnt, time_main_engine_cutoff, second_stage_cutoff, double_burn_smallest_prop, flag_falling_single_burn
     
     #===================================================
     # Reset global variables
@@ -643,18 +698,12 @@ def run(ss_throttle, initial_kick_angle):
     time_main_engine_cutoff = None                  # time when the main engine cuts off
     second_stage_cutoff = False                     # flag to check if the second stage is cutoff
     double_burn_smallest_prop = 9e12                # current smallest prop used for double burn for current tested kick angle
-
-    if (init.SYM_TYPE == 5) and not(coasting_double_burn.DOUBLE_BURN_FULL_SIMULATION):
-        double_burn_altitude = None                     # altitude at which the double burn is performed for the current smallest prop
-        double_burn_time = None                         # time at which the double burn is performed for the current smallest prop
-        double_burn_delta_v = None                      # total delta-v for the double burn for the current smallest prop
-        double_burn_delta_v_1 = None                    # delta-v for the first burn of the double burn
-        double_burn_delta_v_2 = None                    # delta-v for the second burn of the double burn
+    flag_falling_single_burn = False                # flag to check if the rocket is falling back to Earth; only used for single burn optimization
 
     # ---- Debugging ---- 
     # Print desired orbit
-    r_desired = c.R_EARTH + init.ALT_DESIRED
-    v_desired = np.sqrt(c.MU_EARTH / r_desired)
+    # r_desired = c.R_EARTH + init.ALT_DESIRED
+    # v_desired = np.sqrt(c.MU_EARTH / r_desired)
     #print(r_desired)
     #print(v_desired)
 
@@ -737,6 +786,9 @@ def run(ss_throttle, initial_kick_angle):
                 else:
                     m_propellant_total_used_2nd_stage = 999999999.
 
+                if delta_v > init.MAX_ACCEPTED_DELTA_V:
+                    m_propellant_total_used_2nd_stage = 999999999.
+
                 # # Print masses for debugging
                 # print("\n\n")
                 # print("Propellant left: \t\t\t", m_propellant_left)
@@ -748,6 +800,7 @@ def run(ss_throttle, initial_kick_angle):
                 if not(coasting_single_burn.SINGLE_BURN_FULL_SIMULATION):
                     return time_steps_simulation, data, alt_stop, delta_v, m_propellant_total_used_2nd_stage
                 else:
+                    par_roc.C_D = 0.
                     # Print result of masses
                     print("\t* Final Delta V: \t\t", delta_v, "m/s")
                     print("\t* Altitude stopped: \t\t", alt_stop/1000, "km")
@@ -767,6 +820,11 @@ def run(ss_throttle, initial_kick_angle):
                     # Define time of simulation 3
                     init_time_3 = sol_2.t[-1]
                     # Calculate time until apogee where we do the delta v burn
+                    # print("\n\n")
+                    # print("Perigee: ", r_peri_stop)
+                    # print("Apogee: ", r_apo_stop)
+                    # print("Orbital Period: ", orbit_period_stop)
+                    # print("\n\n")
                     time_3 = solvers.get_time_until_apogee(e_stop, initial_state_3[3], initial_state_3[2], orbit_period_stop, a_stop, initial_state_3[1])
                     # print("Time 3: \t\t", time_3)
                     
@@ -796,6 +854,14 @@ def run(ss_throttle, initial_kick_angle):
                     # Collect data and time steps
                     data = np.concatenate((sol_1.y, sol_2.y, sol_3.y, sol_4.y), axis=1)
                     time_steps_simulation = np.concatenate((sol_1.t, sol_2.t, sol_3.t, sol_4.t))
+
+                    # print("Initial time 2: ", init_time_2)
+                    # print("End time 2: ", init_time_2 + time_2)
+                    # print("Initial time 3: ", init_time_3)
+                    # print("End time 3: ", init_time_3 + time_3)
+                    # print("Initial time 4: ", init_time_4)
+                    # print("End time 4: ", init_time_4 + time_4)
+                    # print("\n")
         
                     return time_steps_simulation, data, alt_stop, delta_v, m_propellant_total_used_2nd_stage
    
@@ -849,8 +915,7 @@ def simulate_full_double_burn_trajectory(sol_1, initial_kick_angle):
         - time_steps_simulation: time steps of the full simulation
         - data: data of the full simulation
     """
-    global double_burn_smallest_prop, double_burn_altitude, double_burn_time, double_burn_delta_v, second_stage_cutoff
-
+    global second_stage_cutoff
 
     # ---- Phase 2: Burn 2nd stage until coasting starts ----
     # Define new initial state
@@ -862,7 +927,7 @@ def simulate_full_double_burn_trajectory(sol_1, initial_kick_angle):
     # Define time of simulation 2
     init_time_2 = sol_1.t[-1]
 
-    time_2 = double_burn_time - init_time_2
+    time_2 = coasting_double_burn.double_burn_time_global - init_time_2
     
     # Call simulation for stage 1
     sol_2 = simulate_trajectory(init_time_2, time_2, initial_state_2, False, True, 1.0, initial_kick_angle)
@@ -896,14 +961,15 @@ def simulate_full_double_burn_trajectory(sol_1, initial_kick_angle):
 
     # ---- Phase 4: 1st delta v burn ----
     initial_state_4 = sol_3.y[:, -1]
-    initial_state_4[2] += double_burn_delta_v_1
-    m_prop_required_delta_1 = sol_3.y[4, -1] * (1 - np.exp(-double_burn_delta_v_1 / (c.G0 * par_roc.ISP_2)))
+    initial_state_4[2] += coasting_double_burn.double_burn_delta_v_1_global
+    m_prop_required_delta_1 = sol_3.y[4, -1] * (1 - np.exp(-coasting_double_burn.double_burn_delta_v_1_global / (c.G0 * par_roc.ISP_2)))
 
     # Calculate time needed to perform the delta v burn
-    burn_time_delta_v_1 = solvers.calculate_burn_time(initial_state_4[4],double_burn_delta_v_1)
+    burn_time_delta_v_1 = solvers.calculate_burn_time(initial_state_4[4], coasting_double_burn.double_burn_delta_v_1_global)
     print("\n\nBurn time delta-v 1:", burn_time_delta_v_1)
 
     initial_state_4[4] -= m_prop_required_delta_1
+
     # ---- Phase 5: Coasting until transfer apogee ----
     # Define time it takes from the delta v burn until the transfer apogee ---> half of the orbit period
     a_transfer, e_transfer, r_apo_transfer, r_peri_transfer, orbit_period_transfer = get_orbital_elements(initial_state_4[1], initial_state_4[2], initial_state_4[3])
@@ -912,17 +978,16 @@ def simulate_full_double_burn_trajectory(sol_1, initial_kick_angle):
     # Define time of simulation 2
     init_time_4 = sol_3.t[-1]
     
-    # Call simulation for stage 1
     sol_4 = simulate_trajectory(init_time_4, time_4, initial_state_4, False, True, 1.0, initial_kick_angle)
 
 
     # ---- Phase 6: 2nd delta v burn ----
     initial_state_5 = sol_4.y[:, -1]
-    initial_state_5[2] += double_burn_delta_v_2
-    m_prop_required_delta_2 = sol_4.y[4, -1] * (1 - np.exp(-double_burn_delta_v_2 / (c.G0 * par_roc.ISP_2)))
+    initial_state_5[2] += coasting_double_burn.double_burn_delta_v_2_global
+    m_prop_required_delta_2 = sol_4.y[4, -1] * (1 - np.exp(-coasting_double_burn.double_burn_delta_v_2_global / (c.G0 * par_roc.ISP_2)))
 
     # Calculate time needed to perform the delta v burn
-    burn_time_delta_v_2 = solvers.calculate_burn_time(initial_state_4[4],double_burn_delta_v_2)
+    burn_time_delta_v_2 = solvers.calculate_burn_time(initial_state_4[4], coasting_double_burn.double_burn_delta_v_2_global)
     print("Burn time delta-v 2:", burn_time_delta_v_2, "\n")
 
     initial_state_5[4] -= m_prop_required_delta_2
@@ -931,7 +996,7 @@ def simulate_full_double_burn_trajectory(sol_1, initial_kick_angle):
     # Define time of simulation 2
     init_time_5 = sol_4.t[-1]
     time_5 = 7000.   #<------TODO
-    
+
     # Call simulation for stage 1
     sol_5 = simulate_trajectory(init_time_5, time_5, initial_state_5, False, True, 1.0, initial_kick_angle)
 

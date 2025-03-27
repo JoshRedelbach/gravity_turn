@@ -5,7 +5,8 @@
 import numpy as np
 from scipy.optimize import bisect, minimize
 from scipy.optimize import differential_evolution
-from scipy.optimize import shgo
+from scipy.optimize import shgo, brute
+from scipy.optimize import dual_annealing
 from components.rocket import run
 import time
 
@@ -17,7 +18,7 @@ import init
 
 from components.rocket_selector import select_rocket
 # Selected Launch Vehicle
-par_roc = select_rocket(init.LV)  # Replace 'MK1' with the name of your desired rocket module
+par_roc = select_rocket(init.LV)
 
 # =======================================================
 #  Direct no coast orbit injection solver (gravity turn)
@@ -166,17 +167,17 @@ def get_time_until_apogee(e, gamma, v, T, a, r):
     Output:
         - time_until_apogee: time until the spacecraft reaches the apogee of the orbit; [s]
     """
-    # h = np.sqrt(c.MU_EARTH * a * (1 - e**2))                        # angular momentum
-    # print("h: ", h)
-    # print("Stuff in sin:", h * v * np.cos(gamma) / (c.MU_EARTH * e))
-    # theta = np.arcsin(h * v * np.cos(gamma) / (c.MU_EARTH * e))     # true anomaly of stop point
+    # print("Radius: ", r)
+    # print("Gamma: ", np.rad2deg(gamma))
+    # print("Velocity: ", v)
 
     theta = np.arccos((a * (1 - e**2) - r) / (e * r))                # true anomaly of stop point
-
     ecc_anomaly = 2 * np.arctan2(np.sqrt((1 - e) / (1 + e)) * (1 - np.cos(theta)), np.sin(theta))    # eccentric anomaly of stop point
     mean_anomaly = ecc_anomaly - e * np.sin(ecc_anomaly)             # mean anomaly of stop point
     time_until_apogee = T / (2 * np.pi) * mean_anomaly               # time until the spacecraft reaches the apogee of the orbit
     time_until_apogee = (T / 2.) - time_until_apogee
+
+    # print("Time until apogee: ", time_until_apogee)
 
     return time_until_apogee
     
@@ -196,6 +197,12 @@ def coasting_single_burn_objective(kick_angle):
         - m_propellant_total_used_2nd_stage: total mass of propellant used in the second stage; [kg]
     """
     time, data, alt_stopped, delta_v, m_propellant_total_used_2nd_stage = run(1.0, kick_angle)
+
+        # ---- Debugging ----
+    print("Kick angle:\t\t", np.rad2deg(kick_angle))
+    print("Propellant used:\t", m_propellant_total_used_2nd_stage, "kg")
+    print("Delta V:\t\t", delta_v, "m/s")
+    print("\n")
 
     # ---- Debugging ----
     # print("\nAltitude stopped: ", str(alt_stopped), "m")
@@ -222,45 +229,70 @@ def find_initial_kick_angle_coast_single_burn():
     """
     bounds = [(par_sim.ALPHA_LOWEST, par_sim.ALPHA_HIGHEST)]
 
-    initial_guess_1 = np.deg2rad(-60)
+    initial_guess = init.ALPHA_INITIAL_GUESS
 
     print("\nFinding initial kick angle for coasting single burn...\n")
 
     # Time measurement
     start_time = time.time()
 
-    result = differential_evolution(
+    # -- DIFFERENTIAL EVOLUTION --
+    # result = differential_evolution(
+    #     lambda x: abs(coasting_single_burn_objective(x[0])),
+    #     bounds=bounds,
+    #     tol=1e-7,
+    #     strategy='best1bin',
+    #     maxiter=1000,
+    #     popsize=15,
+    #     mutation=(0.5, 1),
+    #     recombination=0.7,
+    #     x0=[initial_guess]
+    # )
+
+    # -- DUAL ANNEALING --
+    # result = dual_annealing(
+    #     lambda x: abs(coasting_single_burn_objective(x[0])),
+    #     bounds=bounds,
+    #     maxiter=1000,
+    #     initial_temp=5230,  # Default temperature; can be adjusted
+    #     visit=2.62,  # Controls exploration (higher = more exploration)
+    #     accept=-5.0,  # Controls acceptance probability
+    #     x0=[initial_guess]
+    # )
+
+    # -- BRUTE FORCE --
+    result = brute(
         lambda x: abs(coasting_single_burn_objective(x[0])),
-        bounds=bounds,
-        tol=1e-7,
-        strategy='best1bin',
-        maxiter=1000,
-        popsize=15,
-        mutation=(0.5, 1),
-        recombination=0.7,
-        x0=[initial_guess_1]
+        ranges=bounds,  # Instead of bounds, we use ranges
+        Ns=1000,  # Number of grid points per parameter
+        finish=None,  # Avoids additional local optimization
+        full_output=True
     )
+    # print("Result: ", np.rad2deg(result[0]))
+    # print("Propellant: ", np.rad2deg(result[1]))
 
-    # Time measurement
-    end_time = time.time()
-    print(f"Optimization finished after {np.round(end_time - start_time, 2)} seconds.")
-    
-    return result.x[0]
 
+    # -- SHGO --
     # # Use SHGO optimizer
     # result = shgo(
     #     lambda x: abs(coasting_single_burn_objective(x[0])),
     #     bounds=bounds,
     #     sampling_method='sobol'
     # )
-
     # # Print all local minima found
     # print("All local minima found:")
+    # print(result)
     # for i, local_min in enumerate(result.xl):
     #     print(f"Local minimum {i + 1}: Kick angle = {local_min[0]}, Objective value = {result.funl[i]}")
 
-    # # Return the global minimum
-    # return result.x[0]
+
+    # Time measurement
+    end_time = time.time()
+    print(f"Optimization finished after {np.round(end_time - start_time, 2)} seconds.")
+
+    # Return the global minimum
+    return result[0]
+    return result.x[0]
 
 
 
@@ -305,36 +337,59 @@ def find_initial_kick_angle_coast_double_burn():
     """
     bounds = [(par_sim.ALPHA_LOWEST, par_sim.ALPHA_HIGHEST)]
 
-    initial_guess_1 = np.deg2rad(-10)
+    initial_guess = init.ALPHA_INITIAL_GUESS
 
     print("\nFinding initial kick angle for coasting double burn...\n")
 
     # Time measurement
     start_time = time.time()
 
-    result = differential_evolution(
+    # result = differential_evolution(
+    #     lambda x: abs(coasting_double_burn_objective(x[0])),
+    #     bounds=bounds,
+    #     tol=1e-7,
+    #     strategy='best1bin',
+    #     maxiter=1000,
+    #     popsize=15,
+    #     mutation=(0.5, 1),
+    #     recombination=0.7,
+    #     x0=[initial_guess]
+    # )
+
+    # print("Result angle: ", np.rad2deg(result.x[0]))
+    # print("Result cost: ", np.rad2deg(result.fun))
+
+    # -- BRUTE FORCE --
+    result = brute(
         lambda x: abs(coasting_double_burn_objective(x[0])),
-        bounds=bounds,
-        tol=1e-7,
-        strategy='best1bin',
-        maxiter=1000,
-        popsize=15,
-        mutation=(0.5, 1),
-        recombination=0.7,
-        x0=[initial_guess_1]
+        ranges=bounds,  # Instead of bounds, we use ranges
+        Ns=1000,  # Number of grid points per parameter
+        finish=None,  # Avoids additional local optimization
+        full_output=True
     )
 
     # Time measurement
     end_time = time.time()
     print(f"Optimization finished after {np.round(end_time - start_time, 2)} seconds.")
-    
+
+    return result[0]
+
     return result.x[0]
 
 
 
 
 def calculate_burn_time(m0, delta_v):
+    """
+    Calculates the time the second stage would need in reality to burn the propellant required for a specific delta v.
 
+    Input:
+        - delta_v: delta-v required for the burn; [m/s]
+        - m0: initial mass of the second stage; [kg]
+    
+    Output:
+        - t_burn: time the second stage would need to burn the propellant; [s]
+    """
     t_burn = m0 * ( 1 - np.exp(-delta_v / par_roc.ISP_2 / c.G0) ) / (par_roc.F_THRUST_2 / c.G0 / par_roc.ISP_2)
 
     return t_burn

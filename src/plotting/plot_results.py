@@ -50,6 +50,7 @@ def single_run(time_steps, data, INITIAL_KICK_ANGLE):
     # Recreate angle of attack values
     # Initialize empty list with length of t
     angle_of_attacks = [0.0] * len(time_reduced)
+
     for i, t in enumerate(time_reduced):
         if t < r.time_kick_start:
             angle_of_attacks[i] = 0.0
