@@ -198,25 +198,12 @@ def coasting_single_burn_objective(kick_angle):
     """
     time, data, alt_stopped, delta_v, m_propellant_total_used_2nd_stage = run(1.0, kick_angle)
 
-        # ---- Debugging ----
+    # ---- Debugging ----
     print("Kick angle:\t\t", np.rad2deg(kick_angle))
     print("Propellant used:\t", m_propellant_total_used_2nd_stage, "kg")
-    print("Delta V:\t\t", delta_v, "m/s")
+    # print("Delta V:\t\t", delta_v, "m/s")
     print("\n")
 
-    # ---- Debugging ----
-    # print("\nAltitude stopped: ", str(alt_stopped), "m")
-    # print("Delta V: ", str(delta_v/1000), "km/s")
-    # print("Kick angle: ", np.rad2deg(kick_angle))
-    # print("Propellant used: ", m_propellant_total_used_2nd_stage, "kg")
-    # print("\n")
-
-    # a, e, r_apo, r_peri, _ = rocket.get_orbital_elements(data[1,-1], data[2,-1], data[3,-1])
-    # print("Semimajor axis:\t\t ", a, "m")
-    # print("Eccentricity:\t\t ", e)
-    # print("Apoapsis altitude: \t", (r_apo - c.R_EARTH)/1000, "km")
-    # print("Periapsis altitude: \t", (r_peri - c.R_EARTH)/1000, "km")
-    # print("\n\n")
     return m_propellant_total_used_2nd_stage
 
 
@@ -237,62 +224,36 @@ def find_initial_kick_angle_coast_single_burn():
     start_time = time.time()
 
     # -- DIFFERENTIAL EVOLUTION --
-    # result = differential_evolution(
-    #     lambda x: abs(coasting_single_burn_objective(x[0])),
-    #     bounds=bounds,
-    #     tol=1e-7,
-    #     strategy='best1bin',
-    #     maxiter=1000,
-    #     popsize=15,
-    #     mutation=(0.5, 1),
-    #     recombination=0.7,
-    #     x0=[initial_guess]
-    # )
-
-    # -- DUAL ANNEALING --
-    # result = dual_annealing(
-    #     lambda x: abs(coasting_single_burn_objective(x[0])),
-    #     bounds=bounds,
-    #     maxiter=1000,
-    #     initial_temp=5230,  # Default temperature; can be adjusted
-    #     visit=2.62,  # Controls exploration (higher = more exploration)
-    #     accept=-5.0,  # Controls acceptance probability
-    #     x0=[initial_guess]
-    # )
+    if init.OPTIMIZATION_METHOD == 1:
+        result = differential_evolution(
+            lambda x: abs(coasting_single_burn_objective(x[0])),
+            bounds=bounds,
+            tol=1e-7,
+            strategy='best1bin',
+            maxiter=1000,
+            popsize=15,
+            mutation=(0.5, 1),
+            recombination=0.7,
+            x0=[initial_guess]
+        )
+        alpha_optimal = result.x[0]
 
     # -- BRUTE FORCE --
-    result = brute(
-        lambda x: abs(coasting_single_burn_objective(x[0])),
-        ranges=bounds,  # Instead of bounds, we use ranges
-        Ns=1000,  # Number of grid points per parameter
-        finish=None,  # Avoids additional local optimization
-        full_output=True
-    )
-    # print("Result: ", np.rad2deg(result[0]))
-    # print("Propellant: ", np.rad2deg(result[1]))
-
-
-    # -- SHGO --
-    # # Use SHGO optimizer
-    # result = shgo(
-    #     lambda x: abs(coasting_single_burn_objective(x[0])),
-    #     bounds=bounds,
-    #     sampling_method='sobol'
-    # )
-    # # Print all local minima found
-    # print("All local minima found:")
-    # print(result)
-    # for i, local_min in enumerate(result.xl):
-    #     print(f"Local minimum {i + 1}: Kick angle = {local_min[0]}, Objective value = {result.funl[i]}")
-
+    if init.OPTIMIZATION_METHOD == 2:
+        result = brute(
+            lambda x: abs(coasting_single_burn_objective(x[0])),
+            ranges=bounds,  # Instead of bounds, we use ranges
+            Ns=1000,  # Number of grid points per parameter
+            finish=None,  # Avoids additional local optimization
+            full_output=True
+        )
+        alpha_optimal = result[0]
 
     # Time measurement
     end_time = time.time()
     print(f"Optimization finished after {np.round(end_time - start_time, 2)} seconds.")
 
-    # Return the global minimum
-    return result[0]
-    return result.x[0]
+    return alpha_optimal
 
 
 
@@ -344,38 +305,37 @@ def find_initial_kick_angle_coast_double_burn():
     # Time measurement
     start_time = time.time()
 
-    # result = differential_evolution(
-    #     lambda x: abs(coasting_double_burn_objective(x[0])),
-    #     bounds=bounds,
-    #     tol=1e-7,
-    #     strategy='best1bin',
-    #     maxiter=1000,
-    #     popsize=15,
-    #     mutation=(0.5, 1),
-    #     recombination=0.7,
-    #     x0=[initial_guess]
-    # )
-
-    # print("Result angle: ", np.rad2deg(result.x[0]))
-    # print("Result cost: ", np.rad2deg(result.fun))
+    # -- DIFFERENTIAL EVOLUTION --
+    if init.OPTIMIZATION_METHOD == 1:
+        result = differential_evolution(
+            lambda x: abs(coasting_double_burn_objective(x[0])),
+            bounds=bounds,
+            tol=1e-7,
+            strategy='best1bin',
+            maxiter=1000,
+            popsize=15,
+            mutation=(0.5, 1),
+            recombination=0.7,
+            x0=[initial_guess]
+        )
+        alpha_optimal = result.x[0]
 
     # -- BRUTE FORCE --
-    result = brute(
-        lambda x: abs(coasting_double_burn_objective(x[0])),
-        ranges=bounds,  # Instead of bounds, we use ranges
-        Ns=1000,  # Number of grid points per parameter
-        finish=None,  # Avoids additional local optimization
-        full_output=True
-    )
+    if init.OPTIMIZATION_METHOD == 2:
+        result = brute(
+            lambda x: abs(coasting_double_burn_objective(x[0])),
+            ranges=bounds,  # Instead of bounds, we use ranges
+            Ns=1000,  # Number of grid points per parameter
+            finish=None,  # Avoids additional local optimization
+            full_output=True
+        )
+        alpha_optimal = result[0]
 
     # Time measurement
     end_time = time.time()
     print(f"Optimization finished after {np.round(end_time - start_time, 2)} seconds.")
 
-    return result[0]
-
-    return result.x[0]
-
+    return alpha_optimal
 
 
 

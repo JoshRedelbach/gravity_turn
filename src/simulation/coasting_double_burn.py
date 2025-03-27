@@ -51,7 +51,6 @@ def execute():
     print("\t* Optimal delta-v-2:\t\t\t", double_burn_delta_v_2_global, "m/s")
 
     DOUBLE_BURN_FULL_SIMULATION = True
-    init.INTERRUPTS_PRINT = True
 
     time, data = rocket.run(1.0, kick_angle)
 

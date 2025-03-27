@@ -35,7 +35,7 @@ def execute():
 
     kick_angle = solvers.find_initial_kick_angle_coast_single_burn()
     print("\nResults:")
-    print("\t* Optimal Kick angle: \t\t", np.rad2deg(kick_angle), "deg")  
+    print("\t* Optimal Kick angle: \t\t", np.rad2deg(kick_angle), "deg\n")  
 
     SINGLE_BURN_FULL_SIMULATION = True
     time, data, alt_stopped, delta_v, m_propellant_total_used_2nd_stage = rocket.run(1.0, kick_angle)

@@ -809,6 +809,7 @@ def run(ss_throttle, initial_kick_angle):
                     print("\t* Propellant used: \t\t\t\t", m_propellant_used, "kg")
                     print("\t* Propellant required by circularization:\t", m_propellant_required, "kg")
                     print("\t* Total propellant used: \t\t\t", m_propellant_total_used_2nd_stage, "kg")
+                    print("\n\t* Possible Payload: \t\t\t\t", (par_roc.M_PROP_2 - m_propellant_total_used_2nd_stage), "kg")
                     print("\n")
                     # ----- Simulate the rest of the trajectory -----
                     # 1. Coasting
@@ -966,7 +967,6 @@ def simulate_full_double_burn_trajectory(sol_1, initial_kick_angle):
 
     # Calculate time needed to perform the delta v burn
     burn_time_delta_v_1 = solvers.calculate_burn_time(initial_state_4[4], coasting_double_burn.double_burn_delta_v_1_global)
-    print("\n\nBurn time delta-v 1:", burn_time_delta_v_1)
 
     initial_state_4[4] -= m_prop_required_delta_1
 
@@ -988,14 +988,13 @@ def simulate_full_double_burn_trajectory(sol_1, initial_kick_angle):
 
     # Calculate time needed to perform the delta v burn
     burn_time_delta_v_2 = solvers.calculate_burn_time(initial_state_4[4], coasting_double_burn.double_burn_delta_v_2_global)
-    print("Burn time delta-v 2:", burn_time_delta_v_2, "\n")
 
     initial_state_5[4] -= m_prop_required_delta_2
 
     # ---- Phase 7: Coasting in final circular orbit ----
     # Define time of simulation 2
     init_time_5 = sol_4.t[-1]
-    time_5 = 7000.   #<------TODO
+    time_5 = init.DURATION_AFTER_SIMULATION
 
     # Call simulation for stage 1
     sol_5 = simulate_trajectory(init_time_5, time_5, initial_state_5, False, True, 1.0, initial_kick_angle)
@@ -1004,6 +1003,20 @@ def simulate_full_double_burn_trajectory(sol_1, initial_kick_angle):
     # ---- Collect data and time steps ----
     data = np.concatenate((sol_1.y, sol_2.y, sol_3.y, sol_4.y, sol_5.y), axis=1)
     time_steps_simulation = np.concatenate((sol_1.t, sol_2.t, sol_3.t, sol_4.t, sol_5.t))
+
+    # Print result of masses
+    # print("\t* Final Delta V: \t\t", delta_v, "m/s")
+    # print("\t* Altitude stopped: \t\t", alt_stop/1000, "km")
+    # print("\nPropellant Overview of 2nd Stage:")
+    # print("\t* Propellant left: \t\t\t\t", m_propellant_left, "kg")
+    # print("\t* Propellant used: \t\t\t\t", m_propellant_used, "kg")
+    # print("\t* Propellant required by circularization:\t", m_propellant_required, "kg")
+    # print("\t* Total propellant used: \t\t\t", m_propellant_total_used_2nd_stage, "kg")
+    # print("\n\t* Possible Payload: \t\t\t\t", (par_roc.M_PROP_2 - m_propellant_total_used_2nd_stage), "kg")
+    # print("\n")
+
+    print("\n\nBurn time delta-v 1:", burn_time_delta_v_1)
+    print("Burn time delta-v 2:", burn_time_delta_v_2, "\n")
 
     return time_steps_simulation, data
 
