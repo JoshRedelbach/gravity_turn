@@ -446,7 +446,7 @@ def rocket_dynamics(t, state, ss_throttle, initial_kick_angle):
     F_T, Isp = thrust_Isp(ss_throttle)
 
     # --- Get current angle of attack ---
-    if alt > init.ALT_INITIAL_KICK and (not kick_performed):
+    if t >= init.TIME_TO_START_KICK and (not kick_performed):
         alpha = pitch_programm_linear(t, initial_kick_angle)
     else:
         alpha = 0.
@@ -494,9 +494,23 @@ def rocket_dynamics(t, state, ss_throttle, initial_kick_angle):
             if state_differentiated[2] > 0:
                 # Calculate delta-v for double burn
                 delta_v_total, delta_v1, delta_v2 = compute_double_burn_delta_v(state)
-                if (delta_v1 < init.MAX_ACCEPTED_DELTA_V) and (delta_v2 < init.MAX_ACCEPTED_DELTA_V):
+
+                # if (delta_v1 < init.MAX_ACCEPTED_DELTA_V) and (delta_v2 < init.MAX_ACCEPTED_DELTA_V):
+                #     # Check if the current prop used is smaller than current smallest prop for a specific kick angle
+                #     check_dual_burn_prop_used(delta_v_total, delta_v1, delta_v2, state, t)
+
+                # check if burn time of those maneuver would be realistic
+                # get burn time of delta_v1 and delta_v2
+                m1 = m
+                m_propellant_required_1 = m1 * (1 - np.exp(-delta_v1 / (c.G0 * par_roc.ISP_2)))
+                m2 = m - m_propellant_required_1
+                burn_time_delta_v_1 = solvers.calculate_burn_time(m1, delta_v1)
+                burn_time_delta_v_2 = solvers.calculate_burn_time(m2, delta_v2)
+
+                if (burn_time_delta_v_1 < init.MAX_ACCEPTED_BURN_TIME) and (burn_time_delta_v_2 < init.MAX_ACCEPTED_BURN_TIME):
                     # Check if the current prop used is smaller than current smallest prop for a specific kick angle
                     check_dual_burn_prop_used(delta_v_total, delta_v1, delta_v2, state, t)
+
 
     return state_differentiated
 
@@ -673,8 +687,6 @@ def simulate_trajectory(init_time, time_stamp, state_init, stage_1_flag, stage_2
     for interrupt in interrupt_list:
         interrupt.terminal = True
         interrupt.direction = 0
-        
-    #print(main_engine_cutoff)
     
     return solve_ivp(rocket_dynamics, y0=state_init, t_span=t_span, t_eval=t_eval, max_step=1, events=interrupt_list, atol=1e-8, args=(ss_throttle, initial_kick_angle))
 
@@ -786,8 +798,14 @@ def run(ss_throttle, initial_kick_angle):
                 else:
                     m_propellant_total_used_2nd_stage = 999999999.
 
-                if delta_v > init.MAX_ACCEPTED_DELTA_V:
+                # Calculate burn time for that delta_v
+                m1 = sol_2.y[4, -1]
+                burn_time_delta_v = solvers.calculate_burn_time(m1, delta_v)
+                if burn_time_delta_v > init.MAX_ACCEPTED_BURN_TIME:
                     m_propellant_total_used_2nd_stage = 999999999.
+
+                # if delta_v > init.MAX_ACCEPTED_DELTA_V:
+                #     m_propellant_total_used_2nd_stage = 999999999.
 
                 # # Print masses for debugging
                 # print("\n\n")
@@ -800,17 +818,19 @@ def run(ss_throttle, initial_kick_angle):
                 if not(coasting_single_burn.SINGLE_BURN_FULL_SIMULATION):
                     return time_steps_simulation, data, alt_stop, delta_v, m_propellant_total_used_2nd_stage
                 else:
+                    coasting_single_burn.TIME_TO_STOP_BURNING_SINGLE_BURN_FINAL = sol_2.t[-1]
                     par_roc.C_D = 0.
                     # Print result of masses
-                    print("\t* Final Delta V: \t\t", delta_v, "m/s")
-                    print("\t* Altitude stopped: \t\t", alt_stop/1000, "km")
+                    print("\t* Optimal altitude to stop burning: \t\t", alt_stop/1000, "km")
+                    print("\t* Optimal time to stop burning: \t\t", coasting_single_burn.TIME_TO_STOP_BURNING_SINGLE_BURN_FINAL, "s")
+                    print("\t* Optimal delta-v: \t\t\t\t", delta_v, "m/s")
                     print("\nPropellant Overview of 2nd Stage:")
                     print("\t* Propellant left: \t\t\t\t", m_propellant_left, "kg")
                     print("\t* Propellant used: \t\t\t\t", m_propellant_used, "kg")
                     print("\t* Propellant required by circularization:\t", m_propellant_required, "kg")
                     print("\t* Total propellant used: \t\t\t", m_propellant_total_used_2nd_stage, "kg")
-                    print("\n\t* Possible Payload: \t\t\t\t", (par_roc.M_PROP_2 - m_propellant_total_used_2nd_stage), "kg")
-                    print("\n")
+                    print("\t* Possible Payload: \t\t\t\t", (par_roc.M_PROP_2 - m_propellant_total_used_2nd_stage), "kg")
+
                     # ----- Simulate the rest of the trajectory -----
                     # 1. Coasting
                     # Cutoff second stage engine
@@ -839,7 +859,8 @@ def run(ss_throttle, initial_kick_angle):
 
                     # Calculate time needed to perform the delta v burn
                     burn_time_delta_v = solvers.calculate_burn_time(initial_state_4[4], delta_v)
-                    print("Burn time delta-v:", burn_time_delta_v, "\n")
+                    print("\nBurn times:")
+                    print("\t* Time for delta-v:\t\t\t\t", burn_time_delta_v, "s\n")
 
                     initial_state_4[4] -= m_propellant_required
 
@@ -1004,19 +1025,26 @@ def simulate_full_double_burn_trajectory(sol_1, initial_kick_angle):
     data = np.concatenate((sol_1.y, sol_2.y, sol_3.y, sol_4.y, sol_5.y), axis=1)
     time_steps_simulation = np.concatenate((sol_1.t, sol_2.t, sol_3.t, sol_4.t, sol_5.t))
 
-    # Print result of masses
-    # print("\t* Final Delta V: \t\t", delta_v, "m/s")
-    # print("\t* Altitude stopped: \t\t", alt_stop/1000, "km")
-    # print("\nPropellant Overview of 2nd Stage:")
-    # print("\t* Propellant left: \t\t\t\t", m_propellant_left, "kg")
-    # print("\t* Propellant used: \t\t\t\t", m_propellant_used, "kg")
-    # print("\t* Propellant required by circularization:\t", m_propellant_required, "kg")
-    # print("\t* Total propellant used: \t\t\t", m_propellant_total_used_2nd_stage, "kg")
-    # print("\n\t* Possible Payload: \t\t\t\t", (par_roc.M_PROP_2 - m_propellant_total_used_2nd_stage), "kg")
-    # print("\n")
+    # ----- Calculate total propellant required -----
+    m_propellant_left = sol_2.y[4, -1] - (par_roc.M_STRUCTURE_2 + par_roc.M_PAYLOAD)
+    m_propellant_used = par_roc.M_PROP_2 - m_propellant_left
+    m_propellant_required = m_prop_required_delta_2 + m_prop_required_delta_1
 
-    print("\n\nBurn time delta-v 1:", burn_time_delta_v_1)
-    print("Burn time delta-v 2:", burn_time_delta_v_2, "\n")
+    # Check if the propellant required is less than the propellant left
+    if m_propellant_required < m_propellant_left:
+        m_propellant_total_used_2nd_stage = m_propellant_used + m_propellant_required
+
+    print("\nPropellant Overview of 2nd Stage:")
+    print("\t* Propellant left: \t\t\t\t", m_propellant_left, "kg")
+    print("\t* Propellant used: \t\t\t\t", m_propellant_used, "kg")
+    print("\t* Propellant required by circularization:\t", m_propellant_required, "kg")
+    print("\t* Total propellant used: \t\t\t", m_propellant_total_used_2nd_stage, "kg")
+    print("\t* Possible Payload: \t\t\t\t", (par_roc.M_PROP_2 - m_propellant_total_used_2nd_stage), "kg")
+
+    # print("\n")
+    print("\nBurn times:")
+    print("\t* Time for delta-v 1:\t\t\t\t", burn_time_delta_v_1, "s")
+    print("\t* Time for delta-v 2:\t\t\t\t", burn_time_delta_v_2, "s\n")
 
     return time_steps_simulation, data
 

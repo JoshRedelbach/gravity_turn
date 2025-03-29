@@ -7,13 +7,13 @@ M_PAYLOAD = 0e3           # payload mass; [kg]
 
 # -------------- Event Intervals --------------
 # Define time steps for events after main engine cutoff
-DELAY_TIME_STAGE_SEPARATION = 3             # time when stage separation should take place after main engine cutoff 
-DELAY_TIME_SECOND_ENGINE_IGNITION = 11      # time when second stage should be ignited after main engine cutoff
+DELAY_TIME_STAGE_SEPARATION = 3             # time when stage separation should take place after main engine cutoff; [s]
+DELAY_TIME_SECOND_ENGINE_IGNITION = 8       # time when second stage should be ignited after main engine cutoff; [s]
 
 # -------------- Aerodynamic Properties --------------
-A = 10.52             # cross sectional area; [m^2]
-C_D = 0.3           # drag coefficient; [no unit]
-C_L = 0.1           # lift coefficient; [no unit]
+A = 10.52               # cross sectional area; [m^2]
+C_D = 0.3               # drag coefficient; [no unit]
+C_L = 0.1               # lift coefficient; [no unit] ---> lift is neglected in the simulation
 
 # =======================================================
 #  FIRST STAGE

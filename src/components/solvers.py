@@ -251,6 +251,7 @@ def find_initial_kick_angle_coast_single_burn():
 
     # Time measurement
     end_time = time.time()
+    print("-----------------------------------------------------\n")
     print(f"Optimization finished after {np.round(end_time - start_time, 2)} seconds.")
 
     return alpha_optimal
@@ -333,6 +334,7 @@ def find_initial_kick_angle_coast_double_burn():
 
     # Time measurement
     end_time = time.time()
+    print("-----------------------------------------------------\n")
     print(f"Optimization finished after {np.round(end_time - start_time, 2)} seconds.")
 
     return alpha_optimal
