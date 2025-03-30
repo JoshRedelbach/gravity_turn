@@ -1,10 +1,15 @@
 # Simulation of a Two Stage Rocket Launch Performing a Gravity-Turn With Atmosphere
 
 ## Authors
-This project was developed by Joshua Redelbach and Alexandre Pereira.
+This software project was developed by Joshua Redelbach and Alexandre Pereira.
 
 ## Description
-**TO-DO !!**
+This software optimizes the angle of attack with respect to the used propellant for two different scenarios:
+1. **Coasting Single Burn**: In this scenario, the rocket performs a gravity turn until a certain altitude, stops burning and starts coasting until the apogee is reached. This apogee corresponds to the desired altitude. When reaching this point, a certain $\Delta v$ is applied to circularize the orbit.
+2. **Coasting Double Burn**: In this scenario, the rocket performs a gravity turn until a certain altitude, stops burning and starts coasting until the apogee is reached. This apogee does not have to correspond to the desired altitude. When reaching this point, a certain $\Delta v_1$ is applied to get on a transfer orbit which has its apogee at the desired altitude. There, another $\Delta v_2$ is applied to circularize the orbit.
+
+## Usage
+After installing the required python packages (listed below), just specify all the parameters in [_init.py_](/src/init.py) and execute the [_main.py_](/src/main.py)-file.
 
 
 ## Structure of the Project
@@ -22,16 +27,16 @@ This project was developed by Joshua Redelbach and Alexandre Pereira.
     - [_direct\_noCoast\_injection.py_](/src/simulation/direct_noCoast_injection.py): Implements the optimization when no coasting phase shall be performed.
   - [_init.py_](/src/init.py): Contains the defintion of all input parameters by the user. For each run of the simulation, the user shall specify the desired parameter values here.
   - [_main.py_](/src/main.py): This file needs to be executed after specifying the parameters and the desired type of simulation specified in _init.py_.
-- **references**: contains references listed below
+- [**references**](/references/): contains references listed below
 
 ## Unit Convention
 In the code variables are interpreted and used in the respective SI units. The usage of other units only occur when defining input values or plotting the data. This is indicated at the respective part.
 
 ## Required Packages
 Python packages required to run the simulation:
-- numpy
-- matplotlib
-- scipy
+- numpy (pip install numpy)
+- matplotlib (pip install matplotlib)
+- scipy (pip install scipy)
 
 ## References
 Can be found in the [references](/references/) folder:

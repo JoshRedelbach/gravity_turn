@@ -5,12 +5,20 @@
 import numpy as np
 from scipy.optimize import bisect, minimize
 from scipy.optimize import differential_evolution
-from scipy.optimize import shgo
+from scipy.optimize import shgo, brute
+from scipy.optimize import dual_annealing
 from components.rocket import run
+import time
 
 import components.constants as c
 import init as par_sim
 import components.rocket as rocket
+
+import init
+
+from components.rocket_selector import select_rocket
+# Selected Launch Vehicle
+par_roc = select_rocket(init.LV)
 
 # =======================================================
 #  Direct no coast orbit injection solver (gravity turn)
@@ -42,7 +50,7 @@ def find_initial_kick_angle(throttle):
     Output:
         - initial kick angle: initial kick angle; [rad]
     """
-    bounds = [(-np.deg2rad(90), -np.deg2rad(0.1))]
+    bounds = [(par_sim.ALPHA_LOWEST, par_sim.ALPHA_HIGHEST)]
     result = minimize(lambda x: abs(kick_angle_objective(x[0], throttle)), x0=[-np.deg2rad(10)], bounds=bounds, tol=1e-7)
     return result.x[0]
 
@@ -100,7 +108,7 @@ def circularize_delta_v(r, v):
     v_circular = np.sqrt(c.MU_EARTH / r)
 
     # Compute delta-v
-    delta_v = v_circular - v
+    delta_v = abs(v_circular - v)
 
     return delta_v
 
@@ -113,7 +121,7 @@ def hohman_transfer(v1, r1, r2):
 
     Input:
         - v1: velocity of the spacecraft at r1; [m/s]
-        - r1: radius of the initial orbit; [m]
+        - r1: radius of first burn; [m]
         - r2: radius of the final orbit; [m]
 
     Output:
@@ -122,21 +130,24 @@ def hohman_transfer(v1, r1, r2):
         - delta_v_total: total delta-v required for the transfer; [m/s]
     """
     # Compute semi-major axis of the transfer orbit
-    a_transfer = (r1 + r2) / 2
+    a_transfer = (r1 + r2) / 2.
 
     # Compute required velocity of the spacecraft at r2
-    v2 = np.sqrt(c.MU_EARTH * (2 / r2 - 1 / a_transfer))
+    v2 = np.sqrt(c.MU_EARTH * ((2. / r1) - (1. / a_transfer)))
 
     # Compute delta-v required for the first burn
-    delta_v1 = v2 - v1
+    delta_v1 = abs(v2 - v1)
+
+    # Compute velcoity of the spacecraft at r2
+    v3 = np.sqrt(c.MU_EARTH * ((2. / r2) - (1. / a_transfer)))
 
     # Compute delta-v required for the second burn
-    delta_v2 = circularize_delta_v(r2, v2)
+    delta_v2 = circularize_delta_v(r2, v3)
     
     # Compute total delta-v required for the transfer
     delta_v_total = delta_v1 + delta_v2
 
-    return delta_v1, delta_v2, delta_v_total
+    return delta_v_total, delta_v1, delta_v2
 
 
 def get_time_until_apogee(e, gamma, v, T, a, r):
@@ -156,17 +167,17 @@ def get_time_until_apogee(e, gamma, v, T, a, r):
     Output:
         - time_until_apogee: time until the spacecraft reaches the apogee of the orbit; [s]
     """
-    # h = np.sqrt(c.MU_EARTH * a * (1 - e**2))                        # angular momentum
-    # print("h: ", h)
-    # print("Stuff in sin:", h * v * np.cos(gamma) / (c.MU_EARTH * e))
-    # theta = np.arcsin(h * v * np.cos(gamma) / (c.MU_EARTH * e))     # true anomaly of stop point
+    # print("Radius: ", r)
+    # print("Gamma: ", np.rad2deg(gamma))
+    # print("Velocity: ", v)
 
     theta = np.arccos((a * (1 - e**2) - r) / (e * r))                # true anomaly of stop point
-
     ecc_anomaly = 2 * np.arctan2(np.sqrt((1 - e) / (1 + e)) * (1 - np.cos(theta)), np.sin(theta))    # eccentric anomaly of stop point
     mean_anomaly = ecc_anomaly - e * np.sin(ecc_anomaly)             # mean anomaly of stop point
     time_until_apogee = T / (2 * np.pi) * mean_anomaly               # time until the spacecraft reaches the apogee of the orbit
     time_until_apogee = (T / 2.) - time_until_apogee
+
+    # print("Time until apogee: ", time_until_apogee)
 
     return time_until_apogee
     
@@ -186,18 +197,13 @@ def coasting_single_burn_objective(kick_angle):
         - m_propellant_total_used_2nd_stage: total mass of propellant used in the second stage; [kg]
     """
     time, data, alt_stopped, delta_v, m_propellant_total_used_2nd_stage = run(1.0, kick_angle)
-    print("\nAltitude stopped: ", str(alt_stopped), "m")
-    print("Delta V: ", str(delta_v/1000), "km/s")
-    print("Kick angle: ", np.rad2deg(kick_angle))
-    print("Propellant used: ", m_propellant_total_used_2nd_stage, "kg")
+
+    # ---- Debugging ----
+    print("Kick angle:\t\t", np.rad2deg(kick_angle))
+    print("Propellant used:\t", m_propellant_total_used_2nd_stage, "kg")
+    # print("Delta V:\t\t", delta_v, "m/s")
     print("\n")
 
-    a, e, r_apo, r_peri, _ = rocket.get_orbital_elements(data[1,-1], data[2,-1], data[3,-1])
-    print("Semimajor axis:\t\t ", a, "m")
-    print("Eccentricity:\t\t ", e)
-    print("Apoapsis altitude: \t", (r_apo - c.R_EARTH)/1000, "km")
-    print("Periapsis altitude: \t", (r_peri - c.R_EARTH)/1000, "km")
-    print("\n\n")
     return m_propellant_total_used_2nd_stage
 
 
@@ -210,35 +216,142 @@ def find_initial_kick_angle_coast_single_burn():
     """
     bounds = [(par_sim.ALPHA_LOWEST, par_sim.ALPHA_HIGHEST)]
 
-    initial_guess_1 = np.deg2rad(-60)
-    # initial_guess_2 = np.deg2rad(-30)
-    # initial_guess_3 = np.deg2rad(-10)
+    initial_guess = init.ALPHA_INITIAL_GUESS
 
-    result = differential_evolution(
-        lambda x: abs(coasting_single_burn_objective(x[0])),
-        bounds=bounds,
-        tol=1e-7,
-        strategy='best1bin',
-        maxiter=1000,
-        popsize=15,
-        mutation=(0.5, 1),
-        recombination=0.7,
-        x0=[initial_guess_1]
-    )
+    print("\nFinding initial kick angle for coasting single burn...\n")
+
+    # Time measurement
+    start_time = time.time()
+
+    # -- DIFFERENTIAL EVOLUTION --
+    if init.OPTIMIZATION_METHOD == 1:
+        result = differential_evolution(
+            lambda x: abs(coasting_single_burn_objective(x[0])),
+            bounds=bounds,
+            tol=1e-7,
+            strategy='best1bin',
+            maxiter=1000,
+            popsize=15,
+            mutation=(0.5, 1),
+            recombination=0.7,
+            x0=[initial_guess]
+        )
+        alpha_optimal = result.x[0]
+
+    # -- BRUTE FORCE --
+    if init.OPTIMIZATION_METHOD == 2:
+        result = brute(
+            lambda x: abs(coasting_single_burn_objective(x[0])),
+            ranges=bounds,  # Instead of bounds, we use ranges
+            Ns=1000,  # Number of grid points per parameter
+            finish=None,  # Avoids additional local optimization
+            full_output=True
+        )
+        alpha_optimal = result[0]
+
+    # Time measurement
+    end_time = time.time()
+    print("-----------------------------------------------------\n")
+    print(f"Optimization finished after {np.round(end_time - start_time, 2)} seconds.")
+
+    return alpha_optimal
+
+
+
+
+# =======================================================
+#  Coasting and Double Burn Solver (gravity turn)
+# =======================================================
+
+def coasting_double_burn_objective(kick_angle):
+    """
+    Objective function to find the initial kick angle for the gravity turn which minimizes the used propellant in the second stage.
     
-    return result.x[0]
+    Input:
+        - kick angle: initial kick angle; [rad]
+    
+    Output:
+        - double_burn_smallest_prop: total mass of propellant used in the second stage; [kg]
+    """
+    time_steps_simulation, data, double_burn_smallest_prop = run(1.0, kick_angle)
 
-    # # Use SHGO optimizer
-    # result = shgo(
-    #     lambda x: abs(coasting_single_burn_objective(x[0])),
-    #     bounds=bounds,
-    #     sampling_method='sobol'
-    # )
+    # ---- Debugging ----
+    print("Kick angle:\t\t", np.rad2deg(kick_angle))
+    print("Propellant used:\t", double_burn_smallest_prop, "kg")
+    print("\n")
 
-    # # Print all local minima found
-    # print("All local minima found:")
-    # for i, local_min in enumerate(result.xl):
-    #     print(f"Local minimum {i + 1}: Kick angle = {local_min[0]}, Objective value = {result.funl[i]}")
+    # a, e, r_apo, r_peri, _ = rocket.get_orbital_elements(data[1,-1], data[2,-1], data[3,-1])
+    # print("Semimajor axis:\t\t ", a, "m")
+    # print("Eccentricity:\t\t ", e)
+    # print("Apoapsis altitude: \t", (r_apo - c.R_EARTH)/1000, "km")
+    # print("Periapsis altitude: \t", (r_peri - c.R_EARTH)/1000, "km")
+    # print("\n\n")
+    return double_burn_smallest_prop
 
-    # # Return the global minimum
-    # return result.x[0]
+
+
+def find_initial_kick_angle_coast_double_burn():
+    """
+    Finds the initial kick angle for the gravity turn using the differential evolution optimizer.
+    
+    Output:
+        - initial kick angle: initial kick angle; [rad]
+    """
+    bounds = [(par_sim.ALPHA_LOWEST, par_sim.ALPHA_HIGHEST)]
+
+    initial_guess = init.ALPHA_INITIAL_GUESS
+
+    print("\nFinding initial kick angle for coasting double burn...\n")
+
+    # Time measurement
+    start_time = time.time()
+
+    # -- DIFFERENTIAL EVOLUTION --
+    if init.OPTIMIZATION_METHOD == 1:
+        result = differential_evolution(
+            lambda x: abs(coasting_double_burn_objective(x[0])),
+            bounds=bounds,
+            tol=1e-7,
+            strategy='best1bin',
+            maxiter=1000,
+            popsize=15,
+            mutation=(0.5, 1),
+            recombination=0.7,
+            x0=[initial_guess]
+        )
+        alpha_optimal = result.x[0]
+
+    # -- BRUTE FORCE --
+    if init.OPTIMIZATION_METHOD == 2:
+        result = brute(
+            lambda x: abs(coasting_double_burn_objective(x[0])),
+            ranges=bounds,  # Instead of bounds, we use ranges
+            Ns=1000,  # Number of grid points per parameter
+            finish=None,  # Avoids additional local optimization
+            full_output=True
+        )
+        alpha_optimal = result[0]
+
+    # Time measurement
+    end_time = time.time()
+    print("-----------------------------------------------------\n")
+    print(f"Optimization finished after {np.round(end_time - start_time, 2)} seconds.")
+
+    return alpha_optimal
+
+
+
+def calculate_burn_time(m0, delta_v):
+    """
+    Calculates the time the second stage would need in reality to burn the propellant required for a specific delta v.
+
+    Input:
+        - delta_v: delta-v required for the burn; [m/s]
+        - m0: initial mass of the second stage; [kg]
+    
+    Output:
+        - t_burn: time the second stage would need to burn the propellant; [s]
+    """
+    t_burn = m0 * ( 1 - np.exp(-delta_v / par_roc.ISP_2 / c.G0) ) / (par_roc.F_THRUST_2 / c.G0 / par_roc.ISP_2)
+
+    return t_burn
